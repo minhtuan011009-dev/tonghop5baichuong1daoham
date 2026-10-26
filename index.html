@@ -1,0 +1,2812 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toán 12 • Chương 1: Ứng dụng Đạo hàm (Kết nối tri thức) — Interactive Dashboard</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- KaTeX CSS & JS CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: dark light;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.6);
+    }
+
+    /* Glassmorphism Utilities */
+    .glass-panel {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    /* Mindmap Connector & Smooth Collapse */
+    .mindmap-children {
+      transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, transform 0.24s ease;
+      transform-origin: top left;
+    }
+    .mindmap-children.collapsed {
+      max-height: 0 !important;
+      opacity: 0;
+      overflow: hidden;
+      transform: translateY(-4px);
+      pointer-events: none;
+      margin-top: 0 !important;
+    }
+
+    /* KaTeX Overflow & Display Tweaks */
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.5rem 0.25rem;
+      margin: 0.5rem 0 !important;
+    }
+    .katex {
+      font-size: 1.04em;
+    }
+
+    /* Custom Range Slider */
+    input[type="range"].math-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.25);
+      outline: none;
+    }
+    input[type="range"].math-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #6366f1;
+      border: 2px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(99, 102, 241, 0.45);
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    input[type="range"].math-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #4f46e5;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white transition-colors duration-200">
+
+  <!-- Background Ambient Glow -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-3xl"></div>
+    <div class="absolute top-1/3 -right-32 w-96 h-96 rounded-full bg-cyan-500/10 dark:bg-cyan-500/15 blur-3xl"></div>
+    <div class="absolute -bottom-32 left-1/3 w-96 h-96 rounded-full bg-violet-500/10 dark:bg-violet-500/10 blur-3xl"></div>
+  </div>
+
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="sidebar-backdrop" onclick="closeMobileSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-30 hidden lg:hidden transition-opacity"></div>
+
+  <!-- App Layout Wrapper -->
+  <div class="relative z-10 flex min-h-screen w-full">
+
+    <!-- =================================================================== -->
+    <!-- LEFT SIDEBAR (Fixed on Desktop, Drawer on Mobile)                   -->
+    <!-- =================================================================== -->
+    <aside id="app-sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-72 shrink-0 -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out bg-white/90 dark:bg-slate-900/90 glass-panel border-r border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
+      <!-- Top Brand & Navigation -->
+      <div class="p-4 flex flex-col gap-4 overflow-y-auto flex-1">
+        <!-- Brand Header -->
+        <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-200/70 dark:border-slate-800/80">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/25">
+              <span class="font-mono text-base">f'(x)</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <h1 class="font-bold text-sm tracking-tight text-slate-900 dark:text-white">Toán 12 • Chương 1</h1>
+                <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">KNTT</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Ứng dụng Đạo hàm & Đồ thị</p>
+            </div>
+          </div>
+          <button id="close-sidebar-btn" type="button" onclick="closeMobileSidebar()" class="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Đóng menu">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Dynamic Navigation Menu -->
+        <nav id="sidebar-nav" class="flex flex-col gap-1.5" aria-label="Menu bài học">
+          <!-- Populated dynamically via JS -->
+        </nav>
+      </div>
+
+      <!-- Progress Widget Footer -->
+      <div class="p-4 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/60">
+        <div class="p-3.5 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/70 shadow-xs">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="award" class="w-4 h-4 text-amber-500"></i>
+              Tiến độ Luyện tập
+            </span>
+            <span id="progress-percent-badge" class="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">0%</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mb-2">
+            <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-emerald-500 transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span id="progress-stats-text">Đúng 0/15 câu (5 bài)</span>
+            <button id="reset-progress-btn" type="button" onclick="resetAllQuizProgress()" class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+              Đặt lại
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- =================================================================== -->
+    <!-- MAIN WORKSPACE (Top Bar + Dynamic Content Container)                -->
+    <!-- =================================================================== -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- TOP NAVIGATION BAR -->
+      <header class="sticky top-0 z-20 h-16 px-4 lg:px-8 bg-white/80 dark:bg-slate-900/80 glass-panel border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3">
+        <!-- Left: Mobile Hamburger + Current View Breadcrumb -->
+        <div class="flex items-center gap-3 min-w-0">
+          <button id="open-sidebar-btn" type="button" onclick="openMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-indigo-500/10 transition" aria-label="Mở menu">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+          <div class="truncate">
+            <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <span>Giải tích 12</span>
+              <span>•</span>
+              <span id="topbar-subtitle" class="font-medium text-indigo-600 dark:text-indigo-400 truncate">Tổng quan chương</span>
+            </div>
+            <h2 id="topbar-title" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
+              Sơ đồ Tư duy Tổng quan (Global Mindmap)
+            </h2>
+          </div>
+        </div>
+
+        <!-- Center/Right: Quick Search + Audio Toggle + Theme Toggle -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Quick Search Input -->
+          <div class="relative w-44 sm:w-64 md:w-80">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            <input
+              id="quick-search-input"
+              type="text"
+              oninput="handleQuickSearch(this.value)"
+              placeholder="Tìm công thức, định lý, tiệm cận..."
+              class="w-full pl-9 pr-8 py-1.5 text-xs sm:text-sm rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition"
+            />
+            <button
+              id="clear-search-btn"
+              type="button"
+              onclick="clearQuickSearch()"
+              class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              aria-label="Xóa tìm kiếm"
+            >
+              <i data-lucide="x-circle" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Sound Effects Toggle -->
+          <button
+            id="sound-toggle-btn"
+            type="button"
+            onclick="toggleSound()"
+            class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:border-indigo-500/50 transition"
+            title="Bật/tắt âm thanh phản hồi trắc nghiệm"
+            aria-label="Bật/tắt âm thanh"
+          >
+            <i id="sound-icon" data-lucide="volume-2" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Dark/Light Theme Toggle -->
+          <button
+            id="theme-toggle-btn"
+            type="button"
+            onclick="toggleTheme()"
+            class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:border-indigo-500/50 transition"
+            title="Chuyển đổi giao diện Sáng / Tối"
+            aria-label="Đổi giao diện Sáng/Tối"
+          >
+            <i id="theme-icon" data-lucide="sun" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- QUICK SEARCH OVERLAY RESULTS (Shown when user types in search bar) -->
+      <div id="search-results-panel" class="hidden px-4 lg:px-8 pt-6">
+        <!-- Populated dynamically via JS -->
+      </div>
+
+      <!-- MAIN DYNAMIC CONTENT CONTAINER -->
+      <main id="main-content" class="flex-1 px-4 lg:px-8 py-6 max-w-7xl w-full mx-auto">
+        <!-- Populated dynamically via JS -->
+      </main>
+
+      <!-- FOOTER -->
+      <footer class="px-4 lg:px-8 py-4 border-t border-slate-200/60 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <span class="font-semibold text-slate-700 dark:text-slate-300">Interactive Math 12 Dashboard</span> • Chương I: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số (SGK Kết nối tri thức với cuộc sống)
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> KaTeX Engine Ready</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Interactive Graph Lab</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION DATA & LOGIC SCRIPT                                       -->
+  <!-- ===================================================================== -->
+  <script>
+    /**
+     * GIAI ĐOẠN 1: DATA SCHEMA & KNOWLEDGE ARCHITECTURE
+     * Toàn bộ dữ liệu 5 bài học thuộc Chương 1 Giải tích 12 (Kết nối tri thức)
+     */
+    const MATH12_CHAPTER1_DATA = {
+      chapterInfo: {
+        title: "Chương I: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+        grade: 12,
+        curriculum: "Kết nối tri thức với cuộc sống",
+        totalLessons: 5
+      },
+
+      lessons: [
+        // =====================================================================
+        // BÀI 1: TÍNH ĐƠN ĐIỆU VÀ CỰC TRỊ CỦA HÀM SỐ
+        // =====================================================================
+        {
+          id: "bai-1",
+          lessonNumber: 1,
+          title: "Tính đơn điệu và cực trị của hàm số",
+          summary: "Xác định các khoảng đồng biến, nghịch biến và tìm điểm cực đại, cực tiểu của hàm số thông qua dấu và sự đổi dấu của đạo hàm cấp một.",
+          mindmapTree: {
+            label: "Bài 1: Tính đơn điệu & Cực trị",
+            children: [
+              {
+                label: "Tính đơn điệu của hàm số",
+                children: [
+                  {
+                    label: "Định nghĩa trên khoảng $K$",
+                    children: [
+                      { label: "Đồng biến: $\\forall x_1 < x_2 \\Rightarrow f(x_1) < f(x_2)$", children: [] },
+                      { label: "Nghịch biến: $\\forall x_1 < x_2 \\Rightarrow f(x_1) > f(x_2)$", children: [] }
+                    ]
+                  },
+                  {
+                    label: "Định lý dấu đạo hàm",
+                    children: [
+                      { label: "$f'(x) > 0, \\forall x \\in K \\Rightarrow$ Đồng biến trên $K$", children: [] },
+                      { label: "$f'(x) < 0, \\forall x \\in K \\Rightarrow$ Nghịch biến trên $K$", children: [] },
+                      { label: "$f'(x) = 0$ tại hữu hạn điểm: Vẫn bảo toàn tính đơn điệu", children: [] }
+                    ]
+                  },
+                  {
+                    label: "Quy trình 4 bước xét tính đơn điệu",
+                    children: [
+                      { label: "Bước 1: Tìm tập xác định $D$", children: [] },
+                      { label: "Bước 2: Tính $f'(x)$, tìm điểm tại đó $f'(x) = 0$ hoặc không xác định", children: [] },
+                      { label: "Bước 3: Lập bảng biến thiên", children: [] },
+                      { label: "Bước 4: Kết luận các khoảng đồng biến, nghịch biến", children: [] }
+                    ]
+                  }
+                ]
+              },
+              {
+                label: "Cực trị của hàm số",
+                children: [
+                  {
+                    label: "Khái niệm & Thuật ngữ",
+                    children: [
+                      { label: "Điểm cực trị của hàm số: $x_{CĐ}, x_{CT}$", children: [] },
+                      { label: "Giá trị cực trị (cực trị): $y_{CĐ} = f(x_{CĐ}), y_{CT} = f(x_{CT})$", children: [] },
+                      { label: "Điểm cực trị của đồ thị: $M(x_0; f(x_0))$", children: [] }
+                    ]
+                  },
+                  {
+                    label: "Điều kiện cần và đủ",
+                    children: [
+                      { label: "Điều kiện cần (Fermat): $f$ khả vi đạt cực trị tại $x_0 \\Rightarrow f'(x_0) = 0$", children: [] },
+                      { label: "Điều kiện đủ: $f'(x)$ đổi dấu từ $+$ sang $-$ (CĐ) hoặc từ $-$ sang $+$ (CT) qua $x_0$", children: [] },
+                      { label: "Dấu hiệu đạo hàm cấp hai: $f'(x_0) = 0, f''(x_0) < 0 \\Rightarrow$ CĐ; $f''(x_0) > 0 \\Rightarrow$ CT", children: [] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          sections: [
+            {
+              heading: "1. Định lý về dấu đạo hàm và tính đơn điệu",
+              content: "Giả sử hàm số $y = f(x)$ có đạo hàm trên khoảng $K$. Dấu của đạo hàm $f'(x)$ quyết định chiều biến thiên của hàm số trên khoảng đó. Nếu $f'(x)$ giữ nguyên một dấu (hoặc chỉ bằng $0$ tại một số hữu hạn điểm) trên $K$ thì hàm số đơn điệu trên $K$.",
+              formulas: [
+                "$$f'(x) > 0, \\forall x \\in K \\implies f(x) \\text{ đồng biến trên } K$$",
+                "$$f'(x) < 0, \\forall x \\in K \\implies f(x) \\text{ nghịch biến trên } K$$",
+                "$$f'(x) \\ge 0 \\text{ (hoặc } f'(x) \\le 0\\text{)}, \\forall x \\in K \\text{ và } f'(x) = 0 \\text{ tại hữu hạn điểm} \\implies f(x) \\text{ đồng biến (hoặc nghịch biến) trên } K$$",
+                "$$y = \\frac{ax+b}{cx+d} \\implies y' = \\frac{ad - bc}{(cx+d)^2} \\quad (\\text{không đổi dấu trên từng khoảng xác định})$$"
+              ],
+              keyNotes: [
+                "Không dùng ký hiệu hợp $\\cup$ khi kết luận các khoảng đơn điệu rời nhau; phải liệt kê bằng từ 'và' hoặc dấu chấm phẩy (ví dụ: hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(1; +\\infty)$).",
+                "Đối với hàm phân thức bậc nhất trên bậc nhất $y = \\frac{ax+b}{cx+d}$, điều kiện đồng biến trên từng khoảng xác định là $ad - bc > 0$ (tuyệt đối không lấy dấu bằng vì khi $ad - bc = 0$ hàm số trở thành hàm hằng).",
+                "Đối với hàm bậc ba $y = ax^3 + bx^2 + cx + d$ ($a \\neq 0$), điều kiện để hàm số đồng biến trên $\\mathbb{R}$ là $a > 0$ và $\\Delta'_{y'} = b^2 - 3ac \\le 0$."
+              ]
+            },
+            {
+              heading: "2. Khái niệm cực trị và điều kiện có cực trị của hàm số",
+              content: "Điểm $x_0$ được gọi là điểm cực đại (hoặc điểm cực tiểu) của hàm số $f(x)$ nếu tồn tại khoảng $(a; b)$ chứa $x_0$ sao cho $f(x) < f(x_0)$ (hoặc $f(x) > f(x_0)$) với mọi $x \\in (a; b) \\setminus \\{x_0\\}$. Điểm cực trị được xác định dựa trên sự đổi dấu của $f'(x)$ khi đi qua $x_0$.",
+              formulas: [
+                "$$\\text{Điều kiện cần (khi } f \\text{ có đạo hàm tại } x_0\\text{): } x_0 \\text{ là điểm cực trị} \\implies f'(x_0) = 0$$",
+                "$$\\text{Đổi dấu từ } (+) \\to (-) \\text{ khi qua } x_0 \\implies x_0 \\text{ là điểm cực đại } (x_{CĐ})$$",
+                "$$\\text{Đổi dấu từ } (-) \\to (+) \\text{ khi qua } x_0 \\implies x_0 \\text{ là điểm cực tiểu } (x_{CT})$$",
+                "$$\\text{Quy tắc 2: } \\begin{cases} f'(x_0) = 0 \\\\ f''(x_0) < 0 \\end{cases} \\implies x_0 \\text{ là điểm cực đại; } \\quad \\begin{cases} f'(x_0) = 0 \\\\ f''(x_0) > 0 \\end{cases} \\implies x_0 \\text{ là điểm cực tiểu}$$"
+              ],
+              keyNotes: [
+                "Phân biệt chặt chẽ 3 thuật ngữ: 'Điểm cực trị của hàm số' là hoành độ $x_0$; 'Giá trị cực trị (hay cực trị) của hàm số' là tung độ $y_0 = f(x_0)$; 'Điểm cực trị của đồ thị hàm số' là điểm $M(x_0; y_0)$.",
+                "Điều kiện $f'(x_0) = 0$ chỉ là điều kiện cần, không phải điều kiện đủ. Nếu $x_0$ là nghiệm bội chẵn của phương trình $f'(x) = 0$ (ví dụ $f(x) = x^3$ có $f'(x) = 3x^2 = 0$ tại $x = 0$), thì $f'(x)$ không đổi dấu qua $x_0$ nên $x_0$ không phải là điểm cực trị.",
+                "Hàm số vẫn có thể đạt cực trị tại điểm $x_0$ mà tại đó hàm số liên tục nhưng không có đạo hàm (ví dụ hàm số $y = |x|$ đạt cực tiểu tại $x = 0$ dù không có đạo hàm tại $0$)."
+              ]
+            },
+            {
+              heading: "3. Cấu trúc Bảng biến thiên tổng quát",
+              content: "Bảng biến thiên tổng hợp đầy đủ tập xác định, các điểm tới hạn (nghiệm của $f'(x)$ hoặc điểm làm $f'(x)$ không xác định), dấu của $f'(x)$ và chiều biến thiên cùng cực trị, giới hạn của $f(x)$.",
+              formulas: [
+                "$$\\begin{array}{c|ccccccccc} x & -\\infty & & x_1 & & x_2 & & +\\infty \\\\ \\hline f'(x) & & + & 0 & - & 0 & + & \\\\ \\hline f(x) & -\\infty & \\nearrow & f(x_1)_{CĐ} & \\searrow & f(x_2)_{CT} & \\nearrow & +\\infty \\end{array}$$",
+                "$$\\text{Số điểm cực trị của hàm đa thức } y = f(x) \\text{ bằng số nghiệm bội lẻ của phương trình } f'(x) = 0$$"
+              ],
+              keyNotes: [
+                "Tại các điểm $x_0$ mà hàm số không xác định, trên bảng biến thiên phải biểu diễn bằng ký hiệu hai gạch sọc đứng $\\|\\|$ ở cả dòng $f'(x)$ và dòng $f(x)$.",
+                "Giá trị cực đại $y_{CĐ}$ không nhất thiết phải lớn hơn giá trị cực tiểu $y_{CT}$ trên toàn miền xác định, vì cực trị là tính chất cục bộ (địa phương)."
+              ]
+            }
+          ],
+          practiceQuestions: [
+            {
+              question: "Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x^2(x - 1)(x + 2)^3, \\forall x \\in \\mathbb{R}$. Số điểm cực trị của hàm số đã cho là:",
+              options: [
+                "1",
+                "2",
+                "3",
+                "4"
+              ],
+              correctIndex: 1,
+              explanation: "Phương trình $f'(x) = 0 \\Leftrightarrow x = 0$ (nghiệm bội 2 - chẵn), $x = 1$ (nghiệm đơn - lẻ), $x = -2$ (nghiệm bội 3 - lẻ). Vì $f'(x)$ chỉ đổi dấu khi đi qua các nghiệm bội lẻ nên hàm số có đúng 2 điểm cực trị là $x = 1$ và $x = -2$."
+            },
+            {
+              question: "Hàm số $y = -x^3 + 3x^2 + 9x - 5$ đồng biến trên khoảng nào dưới đây?",
+              options: [
+                "$(-\\infty; -1)$",
+                "$(-1; 3)$",
+                "$(3; +\\infty)$",
+                "$(-3; 1)$"
+              ],
+              correctIndex: 1,
+              explanation: "Ta có tập xác định $D = \\mathbb{R}$ và $y' = -3x^2 + 6x + 9$. Cho $y' = 0 \\Leftrightarrow -3(x + 1)(x - 3) = 0 \\Leftrightarrow x = -1$ hoặc $x = 3$. Do hệ số $a = -3 < 0$ nên $y' > 0 \\Leftrightarrow x \\in (-1; 3)$. Vậy hàm số đồng biến trên khoảng $(-1; 3)$."
+            },
+            {
+              question: "Tìm tất cả các giá trị thực của tham số $m$ để hàm số $y = \\frac{x + m}{x + 1}$ nghịch biến trên từng khoảng xác định của nó.",
+              options: [
+                "$m > 1$",
+                "$m \\ge 1$",
+                "$m < 1$",
+                "$m \\le 1$"
+              ],
+              correctIndex: 0,
+              explanation: "Tập xác định $D = \\mathbb{R} \\setminus \\{-1\\}$. Đạo hàm $y' = \\frac{1 - m}{(x + 1)^2}$. Để hàm số nghịch biến trên từng khoảng xác định thì $y' < 0, \\forall x \\neq -1 \\Leftrightarrow 1 - m < 0 \\Leftrightarrow m > 1$."
+            }
+          ]
+        },
+
+        // =====================================================================
+        // BÀI 2: GIÁ TRỊ LỚN NHẤT VÀ GIÁ TRỊ NHỎ NHẤT CỦA HÀM SỐ
+        // =====================================================================
+        {
+          id: "bai-2",
+          lessonNumber: 2,
+          title: "Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
+          summary: "Nắm vững định nghĩa và quy trình tìm giá trị lớn nhất (GTLN), giá trị nhỏ nhất (GTNN) của hàm số trên một tập hợp xác định hoặc trên một đoạn $[a; b]$.",
+          mindmapTree: {
+            label: "Bài 2: GTLN & GTNN của hàm số",
+            children: [
+              {
+                label: "Định nghĩa trên tập $D$",
+                children: [
+                  { label: "GTLN $M = \\max_{D} f(x)$: $f(x) \\le M, \\forall x \\in D$ và $\\exists x_0 \\in D, f(x_0) = M$", children: [] },
+                  { label: "GTNN $m = \\min_{D} f(x)$: $f(x) \\ge m, \\forall x \\in D$ và $\\exists x_0 \\in D, f(x_0) = m$", children: [] }
+                ]
+              },
+              {
+                label: "Phương pháp tìm GTLN - GTNN",
+                children: [
+                  {
+                    label: "Trên khoảng, nửa khoảng hoặc tập $D$ bất kỳ",
+                    children: [
+                      { label: "Lập bảng biến thiên trên miền $D$", children: [] },
+                      { label: "So sánh giá trị cực trị và giới hạn ở các đầu mút", children: [] }
+                    ]
+                  },
+                  {
+                    label: "Quy tắc trên đoạn $[a; b]$ (Hàm liên tục)",
+                    children: [
+                      { label: "Bước 1: Tìm các điểm $x_i \\in (a; b)$ mà $f'(x_i) = 0$ hoặc không xác định", children: [] },
+                      { label: "Bước 2: Tính $f(a), f(b)$ và $f(x_i)$", children: [] },
+                      { label: "Bước 3: Số lớn nhất là $\\max_{[a; b]} f(x)$, số nhỏ nhất là $\\min_{[a; b]} f(x)$", children: [] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          sections: [
+            {
+              heading: "1. Định nghĩa Giá trị lớn nhất và Giá trị nhỏ nhất",
+              content: "Cho hàm số $y = f(x)$ xác định trên tập $D$. Giá trị lớn nhất $M$ và giá trị nhỏ nhất $m$ là các mốc biên toàn cục của tập giá trị hàm số trên miền $D$, đòi hỏi đồng thời hai điều kiện: bất đẳng thức đúng với mọi $x \\in D$ và dấu bằng phải xảy ra tại ít nhất một điểm thuộc $D$.",
+              formulas: [
+                "$$M = \\max_{x \\in D} f(x) \\iff \\begin{cases} f(x) \\le M, \\quad \\forall x \\in D \\\\ \\exists x_0 \\in D \\text{ sao cho } f(x_0) = M \\end{cases}$$",
+                "$$m = \\min_{x \\in D} f(x) \\iff \\begin{cases} f(x) \\ge m, \\quad \\forall x \\in D \\\\ \\exists x_0 \\in D \\text{ sao cho } f(x_0) = m \\end{cases}$$",
+                "$$\\begin{array}{c|ccccc} x & a & & x_0 & & b \\\\ \\hline f'(x) & & - & 0 & + & \\\\ \\hline f(x) & f(a) & \\searrow & f(x_0)_{\\min} & \\nearrow & f(b) \\end{array}$$"
+              ],
+              keyNotes: [
+                "Nếu hàm số chỉ tiến dần tới một giới hạn $L$ khi $x$ tiến tới đầu mút mở (ví dụ $\\lim_{x \\to a^+} f(x) = L$) mà không có điểm $x_0 \\in D$ nào để $f(x_0) = L$, thì $L$ KHÔNG phải là GTLN hay GTNN.",
+                "Cực trị mang tính chất cục bộ (trong một lân cận nhỏ), còn GTLN và GTNN mang tính chất toàn cục trên toàn bộ tập $D$ đang xét."
+              ]
+            },
+            {
+              heading: "2. Cách tìm GTLN và GTNN của hàm số trên một đoạn $[a; b]$",
+              content: "Mọi hàm số liên tục trên một đoạn đóng $[a; b]$ đều tồn tại GTLN và GTNN trên đoạn đó. Giá trị lớn nhất và nhỏ nhất chỉ có thể đạt được tại các điểm tới hạn bên trong khoảng $(a; b)$ hoặc tại hai đầu mút $a, b$.",
+              formulas: [
+                "$$\\text{Tìm } x_1, x_2, \\dots, x_n \\in (a; b) \\text{ tại đó } f'(x) = 0 \\text{ hoặc } f'(x) \\text{ không xác định}$$",
+                "$$\\max_{x \\in [a; b]} f(x) = \\max\\{f(a), f(b), f(x_1), f(x_2), \\dots, f(x_n)\\}$$",
+                "$$\\min_{x \\in [a; b]} f(x) = \\min\\{f(a), f(b), f(x_1), f(x_2), \\dots, f(x_n)\\}$$",
+                "$$\\text{Nếu } f(x) \\text{ đồng biến trên } [a; b] \\implies \\min_{[a; b]} f(x) = f(a), \\quad \\max_{[a; b]} f(x) = f(b)$$"
+              ],
+              keyNotes: [
+                "Khi giải phương trình $f'(x) = 0$, chỉ nhận các nghiệm $x_i$ nằm trong khoảng $(a; b)$ (hoặc đoạn $[a; b]$); bắt buộc phải loại bỏ các nghiệm nằm ngoài đoạn $[a; b]$ trước khi tính giá trị.",
+                "Trên một khoảng mở $(a; b)$, nếu hàm số liên tục và chỉ có duy nhất một điểm cực trị $x_0 \\in (a; b)$: nếu $x_0$ là điểm cực đại thì $f(x_0) = \\max_{(a; b)} f(x)$; nếu $x_0$ là điểm cực tiểu thì $f(x_0) = \\min_{(a; b)} f(x)$.",
+                "Đối với bài toán tìm GTLN - GTNN của hàm hợp $g(x) = f(u(x))$ trên $[a; b]$, nên đặt ẩn phụ $t = u(x)$, tìm miền giá trị $t \\in [t_{\\min}; t_{\\max}]$ khi $x \\in [a; b]$ rồi quy về bài toán tìm $\\max, \\min$ của $f(t)$ trên đoạn $[t_{\\min}; t_{\\max}]$."
+              ]
+            }
+          ],
+          practiceQuestions: [
+            {
+              question: "Giá trị lớn nhất và giá trị nhỏ nhất của hàm số $f(x) = x^3 - 3x^2 - 9x + 10$ trên đoạn $[-2; 2]$ lần lượt là:",
+              options: [
+                "$15$ và $-12$",
+                "$15$ và $8$",
+                "$10$ và $-12$",
+                "$8$ và $-17$"
+              ],
+              correctIndex: 0,
+              explanation: "Ta có $f'(x) = 3x^2 - 6x - 9 = 0 \\Leftrightarrow x = -1 \\in [-2; 2]$ hoặc $x = 3 \\notin [-2; 2]$ (loại). Tính các giá trị: $f(-2) = 8$, $f(-1) = 15$, $f(2) = -12$. Vậy $\\max_{[-2; 2]} f(x) = 15$ và $\\min_{[-2; 2]} f(x) = -12$."
+            },
+            {
+              question: "Tìm giá trị nhỏ nhất của hàm số $y = x + \\frac{4}{x - 1}$ trên khoảng $(1; +\\infty)$.",
+              options: [
+                "$4$",
+                "$5$",
+                "$3$",
+                "$6$"
+              ],
+              correctIndex: 1,
+              explanation: "Với $x \\in (1; +\\infty)$, ta có $y' = 1 - \\frac{4}{(x - 1)^2} = 0 \\Leftrightarrow (x - 1)^2 = 4 \\Leftrightarrow x = 3$ (do $x > 1$). Bảng biến thiên trên $(1; +\\infty)$ cho thấy $y'$ đổi dấu từ $-$ sang $+$ qua $x = 3$, nên hàm số đạt GTNN tại $x = 3$ với $\\min_{(1; +\\infty)} y = y(3) = 3 + \\frac{4}{3 - 1} = 5$."
+            },
+            {
+              question: "Cho hàm số $y = \\frac{x - m^2}{x + 8}$ với $m$ là tham số thực. Tìm tất cả các giá trị của $m$ để giá trị nhỏ nhất của hàm số trên đoạn $[0; 3]$ bằng $-2$.",
+              options: [
+                "$m = \\pm 4$",
+                "$m = \\pm 2$",
+                "$m = 4$",
+                "$m = \\pm \\sqrt{22}$"
+              ],
+              correctIndex: 0,
+              explanation: "Trên đoạn $[0; 3]$, hàm số luôn xác định và có $y' = \\frac{8 + m^2}{(x + 8)^2} > 0, \\forall x \\in [0; 3]$. Do đó hàm số đồng biến trên đoạn $[0; 3]$, suy ra $\\min_{[0; 3]} y = y(0) = \\frac{-m^2}{8}$. Theo giả thiết: $\\frac{-m^2}{8} = -2 \\Leftrightarrow m^2 = 16 \\Leftrightarrow m = \\pm 4$."
+            }
+          ]
+        },
+
+        // =====================================================================
+        // BÀI 3: ĐƯỜNG TIỆM CẬN CỦA ĐỒ THỊ HÀM SỐ
+        // =====================================================================
+        {
+          id: "bai-3",
+          lessonNumber: 3,
+          title: "Đường tiệm cận của đồ thị hàm số",
+          summary: "Xác định đường tiệm cận ngang, tiệm cận đứng và tiệm cận xiên của đồ thị hàm số thông qua các giới hạn tại vô cực và giới hạn một bên.",
+          mindmapTree: {
+            label: "Bài 3: Đường tiệm cận của đồ thị hàm số",
+            children: [
+              {
+                label: "Tiệm cận ngang (TCN): $y = y_0$",
+                children: [
+                  { label: "Điều kiện: $\\lim_{x \\to +\\infty} f(x) = y_0$ hoặc $\\lim_{x \\to -\\infty} f(x) = y_0$", children: [] },
+                  { label: "Đồ thị hàm phân thức có tối đa 1 TCN (bậc tử $\\le$ bậc mẫu)", children: [] }
+                ]
+              },
+              {
+                label: "Tiệm cận đứng (TCĐ): $x = x_0$",
+                children: [
+                  { label: "Điều kiện: $\\lim_{x \\to x_0^+} f(x) = \\pm\\infty$ hoặc $\\lim_{x \\to x_0^-} f(x) = \\pm\\infty$", children: [] },
+                  { label: "Nghiệm của mẫu không bị triệt tiêu hoàn toàn bởi tử", children: [] }
+                ]
+              },
+              {
+                label: "Tiệm cận xiên (TCX): $y = ax + b$ ($a \\neq 0$)",
+                children: [
+                  { label: "Định nghĩa: $\\lim_{x \\to +\\infty} [f(x) - (ax + b)] = 0$ hoặc $\\lim_{x \\to -\\infty} [f(x) - (ax + b)] = 0$", children: [] },
+                  { label: "Công thức hệ số: $a = \\lim_{x \\to \\pm\\infty} \\frac{f(x)}{x}$, $b = \\lim_{x \\to \\pm\\infty} [f(x) - ax]$", children: [] },
+                  { label: "Hàm bậc 2 trên bậc 1: Chia đa thức $y = ax + b + \\frac{c}{px + q} \\Rightarrow$ TCX $y = ax + b$", children: [] }
+                ]
+              }
+            ]
+          },
+          sections: [
+            {
+              heading: "1. Đường tiệm cận ngang",
+              content: "Đường thẳng $y = y_0$ gọi là đường tiệm cận ngang (gọi tắt là tiệm cận ngang) của đồ thị hàm số $y = f(x)$ nếu khoảng cách từ điểm $M(x; f(x))$ trên đồ thị đến đường thẳng $y = y_0$ tiến dần về $0$ khi $x \\to +\\infty$ hoặc $x \\to -\\infty$.",
+              formulas: [
+                "$$\\lim_{x \\to +\\infty} f(x) = y_0 \\quad \\text{hoặc} \\quad \\lim_{x \\to -\\infty} f(x) = y_0 \\implies y = y_0 \\text{ là tiệm cận ngang}$$",
+                "$$y = \\frac{ax + b}{cx + d} \\quad (c \\neq 0) \\implies \\text{Tiệm cận ngang: } y = \\frac{a}{c}$$"
+              ],
+              keyNotes: [
+                "Đồ thị của một hàm số bất kỳ có tối đa 2 đường tiệm cận ngang (ứng với hai đầu $+\\infty$ và $-\\infty$).",
+                "Đối với hàm phân thức hữu tỉ $y = \\frac{P(x)}{Q(x)}$: nếu $\\deg(P) < \\deg(Q)$ thì TCN là $y = 0$ (trục $Ox$); nếu $\\deg(P) = \\deg(Q)$ thì TCN là $y = \\frac{a_0}{b_0}$ (tỉ số hai hệ số bậc cao nhất); nếu $\\deg(P) > \\deg(Q)$ thì đồ thị không có TCN."
+              ]
+            },
+            {
+              heading: "2. Đường tiệm cận đứng",
+              content: "Đường thẳng $x = x_0$ gọi là đường tiệm cận đứng của đồ thị hàm số $y = f(x)$ nếu ít nhất một trong các giới hạn một bên của $f(x)$ tại $x_0$ bằng $+\\infty$ hoặc $-\\infty$.",
+              formulas: [
+                "$$\\lim_{x \\to x_0^+} f(x) = +\\infty, \\quad \\lim_{x \\to x_0^+} f(x) = -\\infty, \\quad \\lim_{x \\to x_0^-} f(x) = +\\infty, \\quad \\lim_{x \\to x_0^-} f(x) = -\\infty$$",
+                "$$y = \\frac{ax + b}{cx + d} \\quad (c \\neq 0, ad - bc \\neq 0) \\implies \\text{Tiệm cận đứng: } x = -\\frac{d}{c}$$"
+              ],
+              keyNotes: [
+                "Chỉ cần MỘT trong bốn giới hạn một bên tại $x_0$ ra $\\pm\\infty$ là đủ kết luận $x = x_0$ là tiệm cận đứng.",
+                "Bẫy sai lầm phổ biến: Không phải mọi nghiệm của mẫu thức $Q(x) = 0$ đều là tiệm cận đứng! Nếu $x = x_0$ vừa là nghiệm của mẫu vừa là nghiệm của tử (ví dụ $y = \\frac{x^2 - 1}{x - 1}$) hoặc nằm ngoài miền xác định của căn thức (ví dụ $y = \\frac{\\sqrt{x}}{x + 1}$ có $x = -1$ không thuộc miền $x \\ge 0$) thì phải tính giới hạn trực tiếp để kiểm tra."
+              ]
+            },
+            {
+              heading: "3. Đường tiệm cận xiên",
+              content: "Đường thẳng $y = ax + b$ ($a \\neq 0$) gọi là đường tiệm cận xiên của đồ thị hàm số $y = f(x)$ nếu hiệu số $[f(x) - (ax + b)]$ tiến về $0$ khi $x \\to +\\infty$ hoặc $x \\to -\\infty$. Đây là nội dung trọng tâm của chương trình SGK Kết nối tri thức mới.",
+              formulas: [
+                "$$\\lim_{x \\to +\\infty} [f(x) - (ax + b)] = 0 \\quad \\text{hoặc} \\quad \\lim_{x \\to -\\infty} [f(x) - (ax + b)] = 0 \\quad (a \\neq 0)$$",
+                "$$a = \\lim_{x \\to +\\infty} \\frac{f(x)}{x}, \\qquad b = \\lim_{x \\to +\\infty} [f(x) - ax] \\quad (\\text{tương tự khi } x \\to -\\infty)$$",
+                "$$y = \\frac{ax^2 + bx + c}{px + q} = mx + n + \\frac{r}{px + q} \\quad (m \\neq 0, r \\neq 0) \\implies \\text{Tiệm cận xiên: } y = mx + n$$"
+              ],
+              keyNotes: [
+                "Điều kiện tiên quyết của tiệm cận xiên là hệ số góc $a \\neq 0$. Nếu $a = 0$ thì đường thẳng $y = b$ trở thành tiệm cận ngang.",
+                "Tại cùng một phía (khi $x \\to +\\infty$ hoặc khi $x \\to -\\infty$), đồ thị hàm số không thể vừa có tiệm cận ngang vừa có tiệm cận xiên.",
+                "Với hàm phân thức hữu tỉ bậc 2 trên bậc 1 $y = \\frac{ax^2 + bx + c}{px + q}$ (tử không chia hết cho mẫu), cách nhanh nhất để tìm tiệm cận xiên là thực hiện phép chia đa thức để tách phần nguyên bậc nhất $y = mx + n$."
+              ]
+            }
+          ],
+          practiceQuestions: [
+            {
+              question: "Đồ thị của hàm số $y = \\frac{2x^2 - 3x + 5}{x - 2}$ có đường tiệm cận xiên là:",
+              options: [
+                "$y = 2x + 1$",
+                "$y = 2x - 1$",
+                "$y = 2x - 3$",
+                "$y = x + 2$"
+              ],
+              correctIndex: 0,
+              explanation: "Thực hiện phép chia đa thức tử cho mẫu: $2x^2 - 3x + 5 = (2x + 1)(x - 2) + 7$, suy ra $y = 2x + 1 + \\frac{7}{x - 2}$. Ta có $\\lim_{x \\to \\pm\\infty} [y - (2x + 1)] = \\lim_{x \\to \\pm\\infty} \\frac{7}{x - 2} = 0$. Vậy đường tiệm cận xiên của đồ thị hàm số là $y = 2x + 1$."
+            },
+            {
+              question: "Tổng số đường tiệm cận đứng và tiệm cận ngang của đồ thị hàm số $y = \\frac{\\sqrt{x^2 - 4}}{x^2 - 3x + 2}$ là:",
+              options: [
+                "1",
+                "2",
+                "3",
+                "4"
+              ],
+              correctIndex: 1,
+              explanation: "Tập xác định: $x^2 - 4 \\ge 0$ và $x^2 - 3x + 2 \\neq 0 \\Leftrightarrow x \\in (-\\infty; -2] \\cup (2; +\\infty)$ (vì $x = 1 \\notin (-\\infty; -2] \\cup [2; +\\infty)$ nên $x = 1$ không phải là TCĐ). Xét tại $x = 2$: $\\lim_{x \\to 2^+} \\frac{\\sqrt{(x - 2)(x + 2)}}{(x - 1)(x - 2)} = \\lim_{x \\to 2^+} \\frac{\\sqrt{x + 2}}{(x - 1)\\sqrt{x - 2}} = +\\infty \\Rightarrow x = 2$ là 1 TCĐ. Xét tại $\\pm\\infty$: $\\lim_{x \\to \\pm\\infty} y = 0 \\Rightarrow y = 0$ là 1 TCN. Vậy đồ thị có tất cả 2 đường tiệm cận."
+            },
+            {
+              question: "Biết đồ thị hàm số $y = \\frac{(2m - 1)x^2 + 3x + 1}{x + 1}$ có đường tiệm cận xiên đi qua điểm $A(2; 4)$. Giá trị của tham số $m$ là:",
+              options: [
+                "$m = 1$",
+                "$m = 2$",
+                "$m = -1$",
+                "$m = \\frac{3}{2}$"
+              ],
+              correctIndex: 0,
+              explanation: "Chia đa thức tử cho mẫu: $(2m - 1)x^2 + 3x + 1 = (x + 1)[(2m - 1)x + (4 - 2m)] + (2m - 3)$. Với $m \\neq \\frac{1}{2}$ và $m \\neq \\frac{3}{2}$, đồ thị có tiệm cận xiên là $y = (2m - 1)x + 4 - 2m$. Thay tọa độ điểm $A(2; 4)$ vào phương trình tiệm cận xiên: $4 = 2(2m - 1) + 4 - 2m \\Leftrightarrow 2m + 2 = 4 \\Leftrightarrow m = 1$ (thỏa mãn điều kiện)."
+            }
+          ]
+        },
+
+        // =====================================================================
+        // BÀI 4: KHẢO SÁT SỰ BIẾN THIÊN VÀ VẼ ĐỒ THỊ CỦA HÀM SỐ
+        // =====================================================================
+        {
+          id: "bai-4",
+          lessonNumber: 4,
+          title: "Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
+          summary: "Thực hiện quy trình chuẩn khảo sát sự biến thiên, xác định tâm đối xứng và vẽ đồ thị của 3 dạng hàm số trọng tâm: hàm bậc ba, hàm phân thức bậc nhất trên bậc nhất và hàm phân thức bậc hai trên bậc nhất.",
+          mindmapTree: {
+            label: "Bài 4: Khảo sát & Vẽ đồ thị hàm số",
+            children: [
+              {
+                label: "Sơ đồ khảo sát tổng quát",
+                children: [
+                  { label: "1. Tìm tập xác định $D$", children: [] },
+                  { label: "2. Xét sự biến thiên: Đạo hàm $y'$, tiệm cận, giới hạn, bảng biến thiên", children: [] },
+                  { label: "3. Vẽ đồ thị: Cực trị, giao điểm với trục tọa độ, tâm đối xứng", children: [] }
+                ]
+              },
+              {
+                label: "Hàm số bậc ba: $y = ax^3 + bx^2 + cx + d$ ($a \\neq 0$)",
+                children: [
+                  { label: "Có 2 cực trị khi $\\Delta'_{y'} = b^2 - 3ac > 0$", children: [] },
+                  { label: "Không có cực trị khi $\\Delta'_{y'} = b^2 - 3ac \\le 0$", children: [] },
+                  { label: "Tâm đối xứng là điểm uốn $I(x_0; y_0)$ với $y''(x_0) = 0 \\Leftrightarrow x_0 = -\\frac{b}{3a}$", children: [] }
+                ]
+              },
+              {
+                label: "Hàm bậc 1 / bậc 1: $y = \\frac{ax + b}{cx + d}$ ($c \\neq 0, ad - bc \\neq 0$)",
+                children: [
+                  { label: "TCĐ: $x = -\\frac{d}{c}$; TCN: $y = \\frac{a}{c}$", children: [] },
+                  { label: "Đơn điệu trên từng khoảng xác định, không có cực trị", children: [] },
+                  { label: "Tâm đối xứng: Giao điểm 2 tiệm cận $I\\left(-\\frac{d}{c}; \\frac{a}{c}\\right)$", children: [] }
+                ]
+              },
+              {
+                label: "Hàm bậc 2 / bậc 1: $y = \\frac{ax^2 + bx + c}{px + q}$ ($a \\neq 0, p \\neq 0$)",
+                children: [
+                  { label: "TCĐ: $x = -\\frac{q}{p}$; TCX: $y = mx + n$ (từ phép chia đa thức)", children: [] },
+                  { label: "Có 2 cực trị (khi $y' = 0$ có 2 nghiệm phân biệt) hoặc không có cực trị", children: [] },
+                  { label: "Tâm đối xứng: Giao điểm của TCĐ và TCX $I(x_0; mx_0 + n)$ với $x_0 = -\\frac{q}{p}$", children: [] }
+                ]
+              }
+            ]
+          },
+          sections: [
+            {
+              heading: "1. Khảo sát hàm số bậc ba $y = ax^3 + bx^2 + cx + d$ ($a \\neq 0$)",
+              content: "Hàm số bậc ba có tập xác định $D = \\mathbb{R}$, đạo hàm $y' = 3ax^2 + 2bx + c$. Đồ thị hàm số bậc ba không có đường tiệm cận và luôn nhận điểm uốn $I(x_0; y_0)$ (nghiệm của phương trình đạo hàm cấp hai $y'' = 0$) làm tâm đối xứng.",
+              formulas: [
+                "$$y' = 3ax^2 + 2bx + c, \\qquad \\Delta'_{y'} = b^2 - 3ac$$",
+                "$$y'' = 6ax + 2b = 0 \\iff x_0 = -\\frac{b}{3a} \\implies \\text{Tâm đối xứng (Điểm uốn): } I\\left(-\\frac{b}{3a}; f\\left(-\\frac{b}{3a}\\right)\\right)$$",
+                "$$\\text{Khi } \\Delta'_{y'} > 0: \\text{ Đồ thị có 2 điểm cực trị } A(x_{CĐ}; y_{CĐ}), B(x_{CT}; y_{CT}) \\text{ và } I \\text{ là trung điểm của } AB$$"
+              ],
+              keyNotes: [
+                "Nhận dạng nhanh dấu hệ số $a$: Nhánh bên phải ngoài cùng của đồ thị đi lên ($\\lim_{x \\to +\\infty} y = +\\infty$) thì $a > 0$; nhánh bên phải đi xuống ($\\lim_{x \\to +\\infty} y = -\\infty$) thì $a < 0$.",
+                "Nhận dạng dấu hệ số tự do $d$: Giao điểm của đồ thị với trục tung $Oy$ là $(0; d)$. Nếu giao điểm nằm phía trên trục $Ox$ thì $d > 0$, nằm dưới trục $Ox$ thì $d < 0$.",
+                "Nhận dạng dấu của $b$ và $c$: Dựa vào tổng và tích hai điểm cực trị $x_1 + x_2 = -\\frac{2b}{3a}$, $x_1 x_2 = \\frac{c}{3a}$ hoặc hoành độ điểm uốn $x_I = -\\frac{b}{3a}$."
+              ]
+            },
+            {
+              heading: "2. Khảo sát hàm phân thức bậc nhất trên bậc nhất $y = \\frac{ax + b}{cx + d}$ ($c \\neq 0, ad - bc \\neq 0$)",
+              content: "Hàm số có tập xác định $D = \\mathbb{R} \\setminus \\left\\{-\\frac{d}{c}\\right\\}$, đạo hàm luôn dương hoặc luôn âm trên từng khoảng xác định. Đồ thị gồm 2 nhánh hyperbol nhận giao điểm của đường tiệm cận đứng và tiệm cận ngang làm tâm đối xứng.",
+              formulas: [
+                "$$y' = \\frac{ad - bc}{(cx + d)^2}, \\qquad \\text{TCĐ: } x = -\\frac{d}{c}, \\qquad \\text{TCN: } y = \\frac{a}{c}$$",
+                "$$\\text{Tâm đối xứng của đồ thị: } I\\left(-\\frac{d}{c}; \\frac{a}{c}\\right)$$",
+                "$$\\begin{array}{c|ccccc} x & -\\infty & & -\\frac{d}{c} & & +\\infty \\\\ \\hline y' & & + & \\|\\| & + & \\\\ \\hline y & \\frac{a}{c} & \\nearrow & \\begin{array}{c} +\\infty \\\\ \\|\\| \\\\ -\\infty \\end{array} & \\nearrow & \\frac{a}{c} \\end{array} \\quad (\\text{khi } ad - bc > 0)$$"
+              ],
+              keyNotes: [
+                "Đồ thị hàm số $y = \\frac{ax + b}{cx + d}$ luôn có 2 trục đối xứng là hai đường phân giác của góc tạo bởi tiệm cận đứng và tiệm cận ngang: $y - \\frac{a}{c} = \\pm\\left(x + \\frac{d}{c}\\right)$.",
+                "Giao điểm với trục tung $Oy$ là $\\left(0; \\frac{b}{d}\\right)$ (khi $d \\neq 0$) và giao điểm với trục hoành $Ox$ là $\\left(-\\frac{b}{a}; 0\\right)$ (khi $a \\neq 0$)."
+              ]
+            },
+            {
+              heading: "3. Khảo sát hàm phân thức bậc hai trên bậc nhất $y = \\frac{ax^2 + bx + c}{px + q}$ ($a \\neq 0, p \\neq 0$, tử không chia hết cho mẫu)",
+              content: "Đây là dạng hàm số mới được đưa vào chính thức trong SGK Kết nối tri thức lớp 12. Bằng phép chia đa thức, ta viết lại hàm số dưới dạng $y = mx + n + \\frac{r}{px + q}$ ($m = \\frac{a}{p} \\neq 0, r \\neq 0$). Đồ thị có 1 tiệm cận đứng, 1 tiệm cận xiên và nhận giao điểm của hai đường tiệm cận này làm tâm đối xứng.",
+              formulas: [
+                "$$y = \\frac{ax^2 + bx + c}{px + q} = mx + n + \\frac{r}{px + q} \\implies y' = m - \\frac{r \\cdot p}{(px + q)^2} = \\frac{apx^2 + 2aqx + bq - cp}{(px + q)^2}$$",
+                "$$\\text{Tiệm cận đứng: } x = -\\frac{q}{p}, \\qquad \\text{Tiệm cận xiên: } y = mx + n$$",
+                "$$\\text{Tâm đối xứng (giao điểm của TCĐ và TCX): } I\\left(-\\frac{q}{p}; m\\left(-\\frac{q}{p}\\right) + n\\right)$$",
+                "$$\\text{Định lý cực trị hữu tỉ: Tại điểm cực trị } x_0, \\text{ giá trị cực trị tính nhanh bởi } y(x_0) = \\frac{(ax^2 + bx + c)'}{(px + q)'} = \\frac{2ax_0 + b}{p}$$"
+              ],
+              keyNotes: [
+                "Nếu $m \\cdot r \\cdot p > 0$ (tức $y' = 0$ có 2 nghiệm phân biệt $x_1, x_2$ đối xứng nhau qua $x = -\\frac{q}{p}$), hàm số có 1 điểm cực đại và 1 điểm cực tiểu.",
+                "Nếu $m \\cdot r \\cdot p < 0$, phương trình $y' = 0$ vô nghiệm, hàm số luôn đồng biến hoặc luôn nghịch biến trên từng khoảng xác định và không có cực trị.",
+                "Đường thẳng đi qua hai điểm cực trị của đồ thị hàm bậc 2 trên bậc 1 có phương trình $y = \\frac{2ax + b}{p}$."
+              ]
+            }
+          ],
+          practiceQuestions: [
+            {
+              question: "Tọa độ tâm đối xứng $I$ của đồ thị hàm số $y = x^3 - 3x^2 + 2$ là:",
+              options: [
+                "$I(1; 0)$",
+                "$I(1; 2)$",
+                "$I(-1; -2)$",
+                "$I(0; 2)$"
+              ],
+              correctIndex: 0,
+              explanation: "Tâm đối xứng của đồ thị hàm bậc ba là điểm uốn $I(x_0; y_0)$ với $y''(x_0) = 0$. Ta có $y' = 3x^2 - 6x \\Rightarrow y'' = 6x - 6 = 0 \\Leftrightarrow x_0 = 1$. Thay $x_0 = 1$ vào hàm số được $y_0 = 1^3 - 3(1)^2 + 2 = 0$. Vậy tâm đối xứng là $I(1; 0)$."
+            },
+            {
+              question: "Tìm tọa độ tâm đối xứng $I$ của đồ thị hàm số $y = \\frac{x^2 - 3x + 4}{x - 1}$.",
+              options: [
+                "$I(1; -1)$",
+                "$I(1; 1)$",
+                "$I(-1; -3)$",
+                "$I(1; -2)$"
+              ],
+              correctIndex: 0,
+              explanation: "Chia đa thức: $y = \\frac{(x - 1)(x - 2) + 2}{x - 1} = x - 2 + \\frac{2}{x - 1}$. Đồ thị có tiệm cận đứng $x = 1$ và tiệm cận xiên $y = x - 2$. Tâm đối xứng của đồ thị là giao điểm của hai đường tiệm cận: thay $x = 1$ vào phương trình tiệm cận xiên ta được $y = 1 - 2 = -1$. Vậy $I(1; -1)$."
+            },
+            {
+              question: "Cho hàm số bậc ba $y = ax^3 + bx^2 + cx + d$ có đồ thị cắt trục tung tại điểm có tung độ dương, có hai điểm cực trị đều có hoành độ dương và nhánh phải đi lên khi $x \\to +\\infty$. Khẳng định nào sau đây đúng về dấu của các hệ số?",
+              options: [
+                "$a > 0, b < 0, c > 0, d > 0$",
+                "$a > 0, b > 0, c > 0, d > 0$",
+                "$a > 0, b < 0, c < 0, d > 0$",
+                "$a < 0, b > 0, c < 0, d > 0$"
+              ],
+              correctIndex: 0,
+              explanation: "Nhánh phải đi lên khi $x \\to +\\infty \\Rightarrow a > 0$. Giao điểm với trục tung $Oy$ nằm phía trên trục hoành $\\Rightarrow d > 0$. Hai điểm cực trị $x_1, x_2 > 0$ là hai nghiệm dương của $y' = 3ax^2 + 2bx + c = 0$. Theo định lý Viète: $x_1 + x_2 = -\\frac{2b}{3a} > 0 \\Rightarrow b < 0$ (do $a > 0$) và $x_1 x_2 = \\frac{c}{3a} > 0 \\Rightarrow c > 0$."
+            }
+          ]
+        },
+
+        // =====================================================================
+        // BÀI 5: ỨNG DỤNG ĐẠO HÀM ĐỂ GIẢI QUYẾT MỘT SỐ VẤN ĐỀ THỰC TIỄN
+        // =====================================================================
+        {
+          id: "bai-5",
+          lessonNumber: 5,
+          title: "Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
+          summary: "Vận dụng ý nghĩa cơ học, vật lý, kinh tế của đạo hàm (tốc độ thay đổi tức thời) và bài toán tìm GTLN - GTNN để giải quyết các bài toán tối ưu hóa trong thực tiễn.",
+          mindmapTree: {
+            label: "Bài 5: Ứng dụng đạo hàm vào thực tiễn",
+            children: [
+              {
+                label: "Tốc độ thay đổi tức thời của một đại lượng",
+                children: [
+                  { label: "Vật lý - Cơ học: Vận tốc $v(t) = s'(t)$, gia tốc $a(t) = v'(t) = s''(t)$", children: [] },
+                  { label: "Điện học & Hóa - Sinh: Cường độ dòng điện $I(t) = q'(t)$, tốc độ tăng trưởng quần thể $P'(t)$", children: [] },
+                  { label: "Kinh tế học (Biên tế): Chi phí biên $C'(x)$, doanh thu biên $R'(x)$, lợi nhuận biên $P'(x)$", children: [] }
+                ]
+              },
+              {
+                label: "Quy trình giải bài toán tối ưu hóa thực tế",
+                children: [
+                  { label: "Bước 1: Chọn ẩn số $x$ và xác định điều kiện thực tế $x \\in D$", children: [] },
+                  { label: "Bước 2: Biểu diễn đại lượng cần tối ưu thành hàm một biến $f(x)$", children: [] },
+                  { label: "Bước 3: Dùng đạo hàm tìm $\\max_{D} f(x)$ hoặc $\\min_{D} f(x)$", children: [] },
+                  { label: "Bước 4: Kết luận theo yêu cầu bài toán thực tế", children: [] }
+                ]
+              },
+              {
+                label: "Các mô hình tối ưu điển hình",
+                children: [
+                  { label: "Hình học - Thiết kế bao bì: Tối ưu thể tích hộp, diện tích vật liệu", children: [] },
+                  { label: "Quãng đường - Thời gian - Chi phí thi công: Đường dây điện, ống dẫn qua 2 môi trường", children: [] },
+                  { label: "Kinh doanh - Giá bán: Định giá sản phẩm để tối đa hóa doanh thu hoặc lợi nhuận", children: [] }
+                ]
+              }
+            ]
+          },
+          sections: [
+            {
+              heading: "1. Tốc độ thay đổi của một đại lượng (Rate of Change)",
+              content: "Nếu đại lượng $y$ phụ thuộc vào đại lượng $x$ theo hàm số $y = f(x)$, thì đạo hàm $f'(x_0)$ biểu thị tốc độ thay đổi tức thời của đại lượng $y$ theo đại lượng $x$ tại điểm $x = x_0$. Trong vật lý, sinh học và kinh tế, đạo hàm là công cụ cốt lõi để đo lường sự biến thiên tức thời.",
+              formulas: [
+                "$$v(t) = s'(t), \\qquad a(t) = v'(t) = s''(t) \\quad (\\text{Phương trình chuyển động } s = s(t))$$",
+                "$$I(t) = q'(t) \\quad (\\text{Cường độ dòng điện tức thời theo điện lượng } q(t))$$",
+                "$$\\text{Hàm chi phí } C(x), \\text{ doanh thu } R(x) = x \\cdot p(x), \\text{ lợi nhuận } P(x) = R(x) - C(x)$$",
+                "$$\\text{Chi phí biên: } MC = C'(x), \\quad \\text{Doanh thu biên: } MR = R'(x), \\quad \\text{Lợi nhuận đạt cực đại khi } P'(x) = 0 \\iff R'(x) = C'(x)$$"
+              ],
+              keyNotes: [
+                "Khi vật chuyển động đổi chiều hoặc đạt độ cao cực đại (trong chuyển động ném thẳng đứng), vận tốc tức thời tại thời điểm đó bằng $0$: $v(t) = s'(t) = 0$.",
+                "Trong kinh tế học, chi phí biên $C'(x_0)$ xấp xỉ phần chi phí tăng thêm để sản xuất thêm 1 đơn vị sản phẩm thứ $x_0 + 1$: $C(x_0 + 1) - C(x_0) \\approx C'(x_0)$."
+              ]
+            },
+            {
+              heading: "2. Bài toán tối ưu hóa trong hình học và chi phí xây dựng",
+              content: "Để giải bài toán tối ưu hình học (như cắt góc tấm tôn làm hộp không nắp có thể tích lớn nhất, thiết kế lon trụ tốn ít vật liệu nhất) hoặc bài toán tối ưu chi phí đường đi qua hai môi trường khác nhau, ta quy tất cả các biến phụ thuộc về một biến độc lập duy nhất thông qua phương trình ràng buộc.",
+              formulas: [
+                "$$\\text{Cắt 4 góc hình vuông cạnh } x \\text{ từ tấm tôn vuông cạnh } a: \\quad V(x) = x(a - 2x)^2 \\quad \\left(0 < x < \\frac{a}{2}\\right) \\implies V_{\\max} \\text{ tại } x = \\frac{a}{6}$$",
+                "$$\\text{Hình trụ có thể tích } V \\text{ không đổi: } S_{tp} = 2\\pi R^2 + 2\\pi R h = 2\\pi R^2 + \\frac{2V}{R} \\text{ đạt GTNN khi } h = 2R$$",
+                "$$\\text{Chi phí qua 2 môi trường: } C(x) = c_1 \\cdot L_1(x) + c_2 \\cdot L_2(x) = c_1 (d - x) + c_2 \\sqrt{x^2 + h^2}$$"
+              ],
+              keyNotes: [
+                "Luôn đặt điều kiện xác định thực tế cho ẩn $x$ (ví dụ kích thước hình học phải dương, độ dài đoạn cắt không vượt quá nửa chiều rộng tấm tôn: $0 < x < \\frac{b}{2}$).",
+                "Sau khi tìm được $x_0$ từ phương trình $f'(x) = 0$, cần kiểm tra dấu của $f'(x)$ (hoặc tính giá trị tại biên) để khẳng định chắc chắn $x_0$ mang lại GTLN hay GTNN theo đúng yêu cầu đề bài."
+              ]
+            },
+            {
+              heading: "3. Bài toán tối ưu hóa doanh thu và lợi nhuận trong kinh doanh",
+              content: "Trong các bài toán định giá bán hoặc cho thuê (phòng khách sạn, căn hộ, vé xe), khi tăng giá bán thêm $x$ đơn vị thì lượng cầu (số lượng bán ra) thường giảm đi theo tỷ lệ tuyến tính. Lập hàm doanh thu hoặc lợi nhuận theo $x$ giúp tìm ra mức giá tối ưu.",
+              formulas: [
+                "$$\\text{Gọi } x \\text{ là số lần tăng (hoặc giảm) giá}: \\quad \\text{Giá mới } P(x) = P_0 + k_1 x, \\quad \\text{Sản lượng mới } Q(x) = Q_0 - k_2 x$$",
+                "$$\\text{Hàm doanh thu: } R(x) = P(x) \\cdot Q(x) = (P_0 + k_1 x)(Q_0 - k_2 x)$$",
+                "$$\\text{Hàm lợi nhuận (nếu chi phí mỗi đơn vị là } c\\text{): } L(x) = (P(x) - c) \\cdot Q(x) - C_{\\text{cố định}}$$"
+              ],
+              keyNotes: [
+                "Đọc kỹ đề bài xem câu hỏi yêu cầu tìm 'mức giá bán mới', 'số tiền tăng thêm' hay 'tổng lợi nhuận lớn nhất' để tránh trả lời nhầm đại lượng sau khi giải ra $x$.",
+                "Nếu số lượng sản phẩm hoặc số căn hộ $Q$ phải là số nguyên dương và nghiệm $x_0$ làm cho $Q$ không nguyên, ta cần tính và so sánh giá trị hàm mục tiêu tại hai giá trị nguyên lân cận gần nhất."
+              ]
+            }
+          ],
+          practiceQuestions: [
+            {
+              question: "Một chất điểm chuyển động theo quy luật $s(t) = -t^3 + 6t^2 + 9t$ (với $t \\ge 0$ tính bằng giây, $s$ tính bằng mét). Vận tốc lớn nhất của chất điểm đạt được trong quá trình chuyển động là:",
+              options: [
+                "$21\\text{ m/s}$",
+                "$15\\text{ m/s}$",
+                "$36\\text{ m/s}$",
+                "$27\\text{ m/s}$"
+              ],
+              correctIndex: 0,
+              explanation: "Vận tốc tức thời của chất điểm tại thời điểm $t$ là $v(t) = s'(t) = -3t^2 + 12t + 9 = -3(t - 2)^2 + 21$. Với mọi $t \\ge 0$, ta có $v(t) \\le 21$, dấu bằng xảy ra khi $t = 2\\text{ (s)}$. Vậy vận tốc lớn nhất của chất điểm là $21\\text{ m/s}$."
+            },
+            {
+              question: "Từ một tấm bìa hình vuông có cạnh bằng $60\\text{ cm}$, người ta cắt bỏ bốn hình vuông bằng nhau ở bốn góc rồi gập lại thành một chiếc hộp chữ nhật không có nắp. Để thể tích chiếc hộp thu được là lớn nhất thì độ dài cạnh của hình vuông bị cắt bỏ bằng:",
+              options: [
+                "$10\\text{ cm}$",
+                "$12\\text{ cm}$",
+                "$15\\text{ cm}$",
+                "$20\\text{ cm}$"
+              ],
+              correctIndex: 0,
+              explanation: "Gọi $x\\text{ (cm)}$ là cạnh hình vuông bị cắt ở mỗi góc ($0 < x < 30$). Khi đó chiều cao hộp là $x$, đáy hộp là hình vuông cạnh $60 - 2x$. Thể tích hộp là $V(x) = x(60 - 2x)^2$. Ta có $V'(x) = (60 - 2x)^2 - 4x(60 - 2x) = (60 - 2x)(60 - 6x) = 0 \\Leftrightarrow x = 10$ (do $0 < x < 30$). Lập bảng biến thiên suy ra $V(x)$ đạt GTLN tại $x = 10\\text{ cm}$."
+            },
+            {
+              question: "Một doanh nghiệp sản xuất độc quyền một loại sản phẩm. Biết hàm cầu đối với sản phẩm là $p(x) = 1500 - 2x$ (nghìn đồng), trong đó $p$ là giá bán mỗi sản phẩm khi sản lượng là $x$ sản phẩm ($x > 0$), và tổng chi phí sản xuất $x$ sản phẩm là $C(x) = x^2 + 300x + 5000$ (nghìn đồng). Để lợi nhuận thu được là lớn nhất thì doanh nghiệp cần sản xuất bao nhiêu sản phẩm?",
+              options: [
+                "$200$ sản phẩm",
+                "$300$ sản phẩm",
+                "$250$ sản phẩm",
+                "$150$ sản phẩm"
+              ],
+              correctIndex: 0,
+              explanation: "Hàm doanh thu là $R(x) = x \\cdot p(x) = 1500x - 2x^2$. Hàm lợi nhuận là $P(x) = R(x) - C(x) = (1500x - 2x^2) - (x^2 + 300x + 5000) = -3x^2 + 1200x - 5000$. Đạo hàm $P'(x) = -6x + 1200 = 0 \\Leftrightarrow x = 200$. Vì $P(x)$ là tam thức bậc hai có hệ số bậc cao nhất âm nên đạt GTLN tại $x = 200$ sản phẩm."
+            }
+          ]
+        }
+      ],
+
+      // =========================================================================
+      // SƠ ĐỒ TƯ DUY TỔNG QUÁT TOÀN CHƯƠNG (GLOBAL MINDMAP)
+      // =========================================================================
+      globalMindmap: {
+        label: "Đạo hàm và Ứng dụng (Chương I - Toán 12)",
+        children: [
+          {
+            label: "Bài 1: Tính đơn điệu & Cực trị",
+            children: [
+              {
+                label: "Tính đơn điệu",
+                children: [
+                  { label: "$f'(x) > 0 \\Rightarrow$ Đồng biến trên $K$", children: [] },
+                  { label: "$f'(x) < 0 \\Rightarrow$ Nghịch biến trên $K$", children: [] }
+                ]
+              },
+              {
+                label: "Cực trị của hàm số",
+                children: [
+                  { label: "Đổi dấu $(+) \\to (-)$: Điểm cực đại $x_{CĐ}$", children: [] },
+                  { label: "Đổi dấu $(-) \\to (+)$: Điểm cực tiểu $x_{CT}$", children: [] },
+                  { label: "Quy tắc đạo hàm cấp hai $f''(x_0)$", children: [] }
+                ]
+              }
+            ]
+          },
+          {
+            label: "Bài 2: Giá trị lớn nhất & Giá trị nhỏ nhất",
+            children: [
+              {
+                label: "Trên tập hợp $D$ bất kỳ",
+                children: [
+                  { label: "Khảo sát & lập Bảng biến thiên trên $D$", children: [] }
+                ]
+              },
+              {
+                label: "Trên đoạn đóng $[a; b]$",
+                children: [
+                  { label: "So sánh $f(a), f(b)$ và các giá trị $f(x_i)$ tại $f'(x_i) = 0$", children: [] }
+                ]
+              }
+            ]
+          },
+          {
+            label: "Bài 3: Đường tiệm cận của đồ thị",
+            children: [
+              {
+                label: "Tiệm cận ngang $y = y_0$",
+                children: [
+                  { label: "$\\lim_{x \\to \\pm\\infty} f(x) = y_0$", children: [] }
+                ]
+              },
+              {
+                label: "Tiệm cận đứng $x = x_0$",
+                children: [
+                  { label: "$\\lim_{x \\to x_0^\\pm} f(x) = \\pm\\infty$", children: [] }
+                ]
+              },
+              {
+                label: "Tiệm cận xiên $y = ax + b$ ($a \\neq 0$)",
+                children: [
+                  { label: "$\\lim_{x \\to \\pm\\infty} [f(x) - (ax + b)] = 0$", children: [] }
+                ]
+              }
+            ]
+          },
+          {
+            label: "Bài 4: Khảo sát & Vẽ đồ thị hàm số",
+            children: [
+              {
+                label: "Hàm bậc ba $y = ax^3 + bx^2 + cx + d$",
+                children: [
+                  { label: "Tâm đối xứng là điểm uốn $I(x_0; y_0)$ với $y''(x_0) = 0$", children: [] }
+                ]
+              },
+              {
+                label: "Hàm phân thức bậc 1 / bậc 1: $y = \\frac{ax+b}{cx+d}$",
+                children: [
+                  { label: "Tâm đối xứng là giao điểm của TCĐ và TCN", children: [] }
+                ]
+              },
+              {
+                label: "Hàm phân thức bậc 2 / bậc 1: $y = \\frac{ax^2+bx+c}{px+q}$",
+                children: [
+                  { label: "Tâm đối xứng là giao điểm của TCĐ và TCX", children: [] }
+                ]
+              }
+            ]
+          },
+          {
+            label: "Bài 5: Ứng dụng thực tiễn",
+            children: [
+              {
+                label: "Tốc độ thay đổi tức thời",
+                children: [
+                  { label: "Cơ học ($v = s', a = v'$), Điện học ($I = q'$), Kinh tế ($MC = C', MR = R'$)", children: [] }
+                ]
+              },
+              {
+                label: "Bài toán tối ưu hóa thực tế",
+                children: [
+                  { label: "Tối ưu hình học, chi phí đường đi, doanh thu & lợi nhuận", children: [] }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    // =========================================================================
+    // APPLICATION STATE & STORAGE HELPERS
+    // =========================================================================
+    const APP_STATE = {
+      activeTab: "mindmap", // 'mindmap' | 'bai-1'..'bai-5' | 'sandbox'
+      darkMode: true,
+      soundEnabled: true,
+      quizAnswers: {}, // key: `${lessonId}-q${qIndex}` -> selectedOptionIndex
+      sandbox: {
+        mode: "cubic", // 'cubic' | 'rational21'
+        // Cubic y = ax^3 + bx^2 + cx + d
+        a: 1,
+        b: -3,
+        c: 0,
+        d: 2,
+        // Rational 2/1 y = (ax^2 + bx + c) / (px + q)
+        ra: 1,
+        rb: -3,
+        rc: 4,
+        rp: 1,
+        rq: -1,
+        // Viewport state for interactive graph
+        scale: 38, // pixels per unit
+        offsetX: 0,
+        offsetY: 0,
+        hoverX: null
+      }
+    };
+
+    function safeGetStorage(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw !== null ? JSON.parse(raw) : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function safeSetStorage(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {
+        // Ignore storage errors in sandboxed iframes
+      }
+    }
+
+    // Load persisted preferences
+    function initPersistedState() {
+      const savedTheme = safeGetStorage("math12_ch1_dark_mode", true);
+      APP_STATE.darkMode = Boolean(savedTheme);
+      applyThemeToDOM();
+
+      const savedSound = safeGetStorage("math12_ch1_sound", true);
+      APP_STATE.soundEnabled = Boolean(savedSound);
+
+      const savedQuiz = safeGetStorage("math12_ch1_quiz_answers", {});
+      if (savedQuiz && typeof savedQuiz === "object") {
+        APP_STATE.quizAnswers = savedQuiz;
+      }
+    }
+
+    // =========================================================================
+    // KATEX FORMULA RENDERING ENGINE
+    // =========================================================================
+    function renderFormulas(containerEl) {
+      const target = containerEl || document.getElementById("main-content");
+      if (!target || typeof renderMathInElement !== "function") return;
+      try {
+        renderMathInElement(target, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false }
+          ],
+          throwOnError: false
+        });
+      } catch (err) {
+        console.warn("KaTeX auto-render warning:", err);
+      }
+    }
+
+    function refreshIcons() {
+      if (typeof lucide !== "undefined" && lucide.createIcons) {
+        lucide.createIcons();
+      }
+    }
+
+    // =========================================================================
+    // WEB AUDIO SYNTHESIZER FOR QUIZ FEEDBACK
+    // =========================================================================
+    let audioCtx = null;
+    function playQuizSound(isCorrect) {
+      if (!APP_STATE.soundEnabled) return;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        if (!audioCtx) audioCtx = new AudioContextClass();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (isCorrect) {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+          osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.22); // G5
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(190, now + 0.22);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+          osc.start(now);
+          osc.stop(now + 0.26);
+        }
+      } catch (e) {
+        // Ignore audio errors
+      }
+    }
+
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      if (!container) return;
+      const toast = document.createElement("div");
+      const colorClasses =
+        type === "success"
+          ? "bg-emerald-600 text-white border-emerald-400"
+          : type === "error"
+          ? "bg-rose-600 text-white border-rose-400"
+          : "bg-indigo-600 text-white border-indigo-400";
+      toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl border shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-all duration-300 ${colorClasses}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(8px)";
+        setTimeout(() => toast.remove(), 300);
+      }, 2400);
+    }
+
+    // =========================================================================
+    // THEME, SOUND & MOBILE SIDEBAR CONTROLS
+    // =========================================================================
+    function applyThemeToDOM() {
+      const root = document.documentElement;
+      const icon = document.getElementById("theme-icon");
+      if (APP_STATE.darkMode) {
+        root.classList.add("dark");
+        if (icon) icon.setAttribute("data-lucide", "sun");
+      } else {
+        root.classList.remove("dark");
+        if (icon) icon.setAttribute("data-lucide", "moon");
+      }
+      refreshIcons();
+      if (APP_STATE.activeTab === "sandbox") {
+        drawSandboxGraph();
+      }
+    }
+
+    function toggleTheme() {
+      APP_STATE.darkMode = !APP_STATE.darkMode;
+      safeSetStorage("math12_ch1_dark_mode", APP_STATE.darkMode);
+      applyThemeToDOM();
+    }
+
+    function toggleSound() {
+      APP_STATE.soundEnabled = !APP_STATE.soundEnabled;
+      safeSetStorage("math12_ch1_sound", APP_STATE.soundEnabled);
+      const icon = document.getElementById("sound-icon");
+      if (icon) {
+        icon.setAttribute("data-lucide", APP_STATE.soundEnabled ? "volume-2" : "volume-x");
+      }
+      refreshIcons();
+      showToast(APP_STATE.soundEnabled ? "Đã bật âm thanh phản hồi" : "Đã tắt âm thanh phản hồi");
+    }
+
+    function openMobileSidebar() {
+      const sidebar = document.getElementById("app-sidebar");
+      const backdrop = document.getElementById("sidebar-backdrop");
+      if (sidebar) sidebar.classList.remove("-translate-x-full");
+      if (backdrop) backdrop.classList.remove("hidden");
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById("app-sidebar");
+      const backdrop = document.getElementById("sidebar-backdrop");
+      if (sidebar) sidebar.classList.add("-translate-x-full");
+      if (backdrop) backdrop.classList.add("hidden");
+    }
+
+    // =========================================================================
+    // SIDEBAR NAVIGATION & PROGRESS BAR
+    // =========================================================================
+    function getLessonQuizStats(lessonId) {
+      const lesson = MATH12_CHAPTER1_DATA.lessons.find((l) => l.id === lessonId);
+      if (!lesson) return { answered: 0, correct: 0, total: 0 };
+      const total = lesson.practiceQuestions.length;
+      let answered = 0;
+      let correct = 0;
+      lesson.practiceQuestions.forEach((q, idx) => {
+        const key = `${lessonId}-q${idx}`;
+        if (APP_STATE.quizAnswers[key] !== undefined) {
+          answered++;
+          if (APP_STATE.quizAnswers[key] === q.correctIndex) {
+            correct++;
+          }
+        }
+      });
+      return { answered, correct, total };
+    }
+
+    function renderSidebarNav() {
+      const nav = document.getElementById("sidebar-nav");
+      if (!nav) return;
+
+      const items = [
+        {
+          id: "mindmap",
+          label: "Sơ đồ Tư duy Tổng quan",
+          sub: "Global Mindmap • 5 nhánh",
+          icon: "network",
+          badge: "Map"
+        },
+        ...MATH12_CHAPTER1_DATA.lessons.map((lesson) => {
+          const stats = getLessonQuizStats(lesson.id);
+          return {
+            id: lesson.id,
+            label: `Bài ${lesson.lessonNumber}: ${lesson.title}`,
+            sub: `${lesson.sections.length} mục • Quiz ${stats.correct}/${stats.total}`,
+            icon: "book-open",
+            badge: stats.answered === stats.total ? `${stats.correct}/${stats.total} ✓` : `${stats.answered}/${stats.total}`,
+            isComplete: stats.answered === stats.total && stats.correct === stats.total
+          };
+        }),
+        {
+          id: "sandbox",
+          label: "Phòng Thí nghiệm Đồ thị",
+          sub: "Graph Sandbox • Bậc 3 & Bậc 2/1",
+          icon: "activity",
+          badge: "Lab"
+        }
+      ];
+
+      nav.innerHTML = items
+        .map((item) => {
+          const isActive = APP_STATE.activeTab === item.id;
+          const activeClasses = isActive
+            ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 border-transparent"
+            : "bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 border-transparent";
+          const subClasses = isActive ? "text-indigo-100" : "text-slate-400 dark:text-slate-500";
+          const badgeClasses = isActive
+            ? "bg-white/20 text-white"
+            : item.isComplete
+            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
+
+          return `
+            <button
+              type="button"
+              onclick="switchTab('${item.id}')"
+              class="w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 flex items-center justify-between gap-2.5 group ${activeClasses}"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-indigo-500 dark:text-indigo-400"
+                }">
+                  <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-semibold truncate">${item.label}</div>
+                  <div class="text-[11px] truncate ${subClasses}">${item.sub}</div>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-md shrink-0 ${badgeClasses}">
+                ${item.badge}
+              </span>
+            </button>
+          `;
+        })
+        .join("");
+
+      updateOverallProgressUI();
+      refreshIcons();
+    }
+
+    function updateOverallProgressUI() {
+      let totalQuestions = 0;
+      let totalAnswered = 0;
+      let totalCorrect = 0;
+
+      MATH12_CHAPTER1_DATA.lessons.forEach((lesson) => {
+        const stats = getLessonQuizStats(lesson.id);
+        totalQuestions += stats.total;
+        totalAnswered += stats.answered;
+        totalCorrect += stats.correct;
+      });
+
+      const pct = totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
+      const pctBadge = document.getElementById("progress-percent-badge");
+      const barFill = document.getElementById("progress-bar-fill");
+      const statsText = document.getElementById("progress-stats-text");
+
+      if (pctBadge) pctBadge.textContent = `${pct}%`;
+      if (barFill) barFill.style.width = `${pct}%`;
+      if (statsText) statsText.textContent = `Đúng ${totalCorrect}/${totalQuestions} câu (${totalAnswered} đã làm)`;
+    }
+
+    function resetAllQuizProgress() {
+      APP_STATE.quizAnswers = {};
+      safeSetStorage("math12_ch1_quiz_answers", {});
+      renderSidebarNav();
+      renderActiveTab();
+      showToast("Đã đặt lại toàn bộ tiến độ trắc nghiệm", "info");
+    }
+
+    function switchTab(tabId) {
+      APP_STATE.activeTab = tabId;
+      closeMobileSidebar();
+      clearQuickSearch(false);
+      renderSidebarNav();
+      renderActiveTab();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // =========================================================================
+    // MODULE 1: INTERACTIVE MINDMAP (RECURSIVE COLLAPSIBLE TREE)
+    // =========================================================================
+    let mindmapNodeCounter = 0;
+
+    function buildMindmapTreeHTML(node, depth = 0, treePrefix = "mm") {
+      mindmapNodeCounter++;
+      const nodeId = `${treePrefix}-node-${mindmapNodeCounter}`;
+      const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+
+      const paletteByDepth = [
+        {
+          card: "bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-600 text-white border-transparent shadow-lg shadow-indigo-500/20",
+          badge: "bg-white/20 text-white",
+          line: "border-indigo-500/40"
+        },
+        {
+          card: "bg-white dark:bg-slate-900 border-indigo-500/40 dark:border-indigo-500/50 text-slate-900 dark:text-white shadow-xs hover:border-indigo-500",
+          badge: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300",
+          line: "border-violet-500/35"
+        },
+        {
+          card: "bg-slate-50/90 dark:bg-slate-800/80 border-cyan-500/35 dark:border-cyan-500/40 text-slate-800 dark:text-slate-100 hover:border-cyan-500",
+          badge: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
+          line: "border-cyan-500/30"
+        },
+        {
+          card: "bg-white/80 dark:bg-slate-900/70 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-200",
+          badge: "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
+          line: "border-slate-300 dark:border-slate-700"
+        }
+      ];
+
+      const style = paletteByDepth[Math.min(depth, paletteByDepth.length - 1)];
+
+      const childrenHTML = hasChildren
+        ? `
+          <div id="${nodeId}-children" class="mindmap-children pl-4 sm:pl-6 mt-2.5 space-y-2.5 border-l-2 ${style.line} ml-3 sm:ml-4" style="max-height: 2400px;">
+            ${node.children.map((child) => buildMindmapTreeHTML(child, depth + 1, treePrefix)).join("")}
+          </div>
+        `
+        : "";
+
+      return `
+        <div class="mindmap-branch">
+          <div
+            ${hasChildren ? `onclick="toggleMindmapNode('${nodeId}')"` : ""}
+            class="group relative flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border transition-all duration-150 ${
+              hasChildren ? "cursor-pointer select-none" : ""
+            } ${style.card}"
+          >
+            <div class="flex items-center gap-2.5 min-w-0">
+              ${
+                hasChildren
+                  ? `<span id="${nodeId}-icon" class="w-5 h-5 rounded-md flex items-center justify-center transition-transform duration-200 ${style.badge}">
+                       <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                     </span>`
+                  : `<span class="w-2 h-2 rounded-full bg-indigo-500 dark:bg-cyan-400 shrink-0 ml-1.5 mr-1"></span>`
+              }
+              <div class="text-xs sm:text-sm font-medium leading-relaxed">${node.label}</div>
+            </div>
+            ${
+              hasChildren
+                ? `<span class="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-md shrink-0 ${style.badge}">
+                     ${node.children.length} nhánh
+                   </span>`
+                : ""
+            }
+          </div>
+          ${childrenHTML}
+        </div>
+      `;
+    }
+
+    function toggleMindmapNode(nodeId) {
+      const childrenEl = document.getElementById(`${nodeId}-children`);
+      const iconEl = document.getElementById(`${nodeId}-icon`);
+      if (!childrenEl) return;
+
+      const isCollapsed = childrenEl.classList.contains("collapsed");
+      if (isCollapsed) {
+        childrenEl.classList.remove("collapsed");
+        if (iconEl) iconEl.style.transform = "rotate(0deg)";
+      } else {
+        childrenEl.classList.add("collapsed");
+        if (iconEl) iconEl.style.transform = "rotate(-90deg)";
+      }
+    }
+
+    function expandOrCollapseAllMindmap(containerId, expand = true) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const branches = container.querySelectorAll(".mindmap-children");
+      branches.forEach((el) => {
+        const iconId = el.id.replace("-children", "-icon");
+        const iconEl = document.getElementById(iconId);
+        if (expand) {
+          el.classList.remove("collapsed");
+          if (iconEl) iconEl.style.transform = "rotate(0deg)";
+        } else {
+          el.classList.add("collapsed");
+          if (iconEl) iconEl.style.transform = "rotate(-90deg)";
+        }
+      });
+    }
+
+    // =========================================================================
+    // VIEW RENDERERS: GLOBAL MINDMAP, LESSON VIEW, GRAPH SANDBOX
+    // =========================================================================
+    function renderActiveTab() {
+      const main = document.getElementById("main-content");
+      const titleEl = document.getElementById("topbar-title");
+      const subtitleEl = document.getElementById("topbar-subtitle");
+      if (!main) return;
+
+      if (APP_STATE.activeTab === "mindmap") {
+        if (subtitleEl) subtitleEl.textContent = "Toàn cảnh Chương I • Kết nối tri thức";
+        if (titleEl) titleEl.textContent = "🗺️ Sơ đồ Tư duy Tổng quan (Global Mindmap)";
+        main.innerHTML = renderGlobalMindmapView();
+      } else if (APP_STATE.activeTab === "sandbox") {
+        if (subtitleEl) subtitleEl.textContent = "Mô phỏng Trực quan Thời gian thực";
+        if (titleEl) titleEl.textContent = "🧪 Phòng Thí nghiệm Đồ thị (Graphing Sandbox)";
+        main.innerHTML = renderGraphSandboxView();
+        initGraphSandboxEvents();
+        drawSandboxGraph();
+      } else {
+        const lesson = MATH12_CHAPTER1_DATA.lessons.find((l) => l.id === APP_STATE.activeTab);
+        if (lesson) {
+          if (subtitleEl) subtitleEl.textContent = `Chương I • Bài ${lesson.lessonNumber} / ${MATH12_CHAPTER1_DATA.chapterInfo.totalLessons}`;
+          if (titleEl) titleEl.textContent = `Bài ${lesson.lessonNumber}: ${lesson.title}`;
+          main.innerHTML = renderLessonDetailView(lesson);
+        }
+      }
+
+      refreshIcons();
+      renderFormulas(main);
+    }
+
+    function renderGlobalMindmapView() {
+      mindmapNodeCounter = 0;
+      const treeHTML = buildMindmapTreeHTML(MATH12_CHAPTER1_DATA.globalMindmap, 0, "global");
+
+      const lessonCardsHTML = MATH12_CHAPTER1_DATA.lessons
+        .map((lesson) => {
+          const stats = getLessonQuizStats(lesson.id);
+          return `
+            <div class="p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500/60 transition flex flex-col justify-between gap-3 shadow-xs">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <span class="px-2.5 py-0.5 text-xs font-bold rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                    Bài ${lesson.lessonNumber}
+                  </span>
+                  <span class="text-xs font-mono text-slate-500 dark:text-slate-400">
+                    Quiz: ${stats.correct}/${stats.total}
+                  </span>
+                </div>
+                <h4 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white mb-1">
+                  ${lesson.title}
+                </h4>
+                <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                  ${lesson.summary}
+                </p>
+              </div>
+              <button
+                type="button"
+                onclick="switchTab('${lesson.id}')"
+                class="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 text-xs font-semibold text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1.5"
+              >
+                <span>Vào học Bài ${lesson.lessonNumber}</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <div class="space-y-6">
+          <!-- Hero Overview Banner -->
+          <div class="p-6 rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-slate-900 text-white shadow-xl relative overflow-hidden">
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="space-y-2 max-w-2xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-xs font-semibold">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                  <span>SGK Toán 12 • ${MATH12_CHAPTER1_DATA.chapterInfo.curriculum}</span>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight">
+                  ${MATH12_CHAPTER1_DATA.chapterInfo.title}
+                </h3>
+                <p class="text-xs sm:text-sm text-indigo-100 leading-relaxed">
+                  Hệ thống hóa toàn bộ kiến thức từ Tính đơn điệu, Cực trị, GTLN - GTNN, Đường tiệm cận (bao gồm Tiệm cận xiên), Khảo sát đồ thị hàm bậc 3 & hàm phân thức bậc 2 trên bậc 1 đến các bài toán tối ưu thực tiễn.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onclick="switchTab('bai-1')"
+                  class="px-4 py-2.5 rounded-xl bg-white text-indigo-700 font-bold text-xs sm:text-sm shadow-md hover:bg-indigo-50 transition flex items-center gap-2"
+                >
+                  <i data-lucide="play" class="w-4 h-4"></i>
+                  <span>Bắt đầu Bài 1</span>
+                </button>
+                <button
+                  type="button"
+                  onclick="switchTab('sandbox')"
+                  class="px-4 py-2.5 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/45 border border-white/30 text-white font-semibold text-xs sm:text-sm transition flex items-center gap-2"
+                >
+                  <i data-lucide="activity" class="w-4 h-4"></i>
+                  <span>Mở Phòng thí nghiệm Đồ thị</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Lesson Grid -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-indigo-500"></i>
+                <span>Cấu trúc 5 Bài học Trọng tâm</span>
+              </h3>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              ${lessonCardsHTML}
+            </div>
+          </div>
+
+          <!-- Interactive Global Mindmap Card -->
+          <div class="p-5 sm:p-6 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200/70 dark:border-slate-800">
+              <div>
+                <h3 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <i data-lucide="git-branch" class="w-5 h-5 text-indigo-500"></i>
+                  <span>Cây Kiến thức Toàn chương (Interactive Mindmap)</span>
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Nhấn vào từng thẻ nhánh để thu gọn hoặc mở rộng các kiến thức chi tiết.
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  onclick="expandOrCollapseAllMindmap('global-mindmap-container', true)"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition flex items-center gap-1"
+                >
+                  <i data-lucide="unfold-vertical" class="w-3.5 h-3.5"></i>
+                  <span>Mở rộng tất cả</span>
+                </button>
+                <button
+                  type="button"
+                  onclick="expandOrCollapseAllMindmap('global-mindmap-container', false)"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1"
+                >
+                  <i data-lucide="fold-vertical" class="w-3.5 h-3.5"></i>
+                  <span>Thu gọn tất cả</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="global-mindmap-container" class="overflow-x-auto">
+              ${treeHTML}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // LESSON DETAIL VIEW (THEORY SECTIONS + MINDMAP + PRACTICE QUIZ)
+    // =========================================================================
+    function renderLessonDetailView(lesson) {
+      mindmapNodeCounter = 0;
+      const lessonMindmapHTML = buildMindmapTreeHTML(lesson.mindmapTree, 0, `lesson-${lesson.id}`);
+
+      const sectionsHTML = lesson.sections
+        .map(
+          (sec, idx) => `
+          <article class="p-5 sm:p-6 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+            <div class="flex items-start justify-between gap-3">
+              <h4 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                  0${idx + 1}
+                </span>
+                <span>${sec.heading}</span>
+              </h4>
+            </div>
+
+            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              ${sec.content}
+            </p>
+
+            <!-- Formulas Box -->
+            <div class="space-y-2.5">
+              <div class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                <i data-lucide="sigma" class="w-3.5 h-3.5"></i>
+                <span>Hệ thống Công thức & Bảng biến thiên</span>
+              </div>
+              <div class="grid grid-cols-1 gap-2.5">
+                ${sec.formulas
+                  .map(
+                    (formula) => `
+                    <div class="px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-indigo-500/25 dark:border-indigo-500/30 overflow-x-auto text-slate-900 dark:text-slate-100">
+                      ${formula}
+                    </div>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+
+            <!-- Key Notes & Common Traps -->
+            <div class="p-4 rounded-xl bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 space-y-2">
+              <div class="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                <span>Lưu ý Trọng tâm & Bẫy Sai lầm Thường gặp</span>
+              </div>
+              <ul class="space-y-1.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                ${sec.keyNotes
+                  .map(
+                    (note) => `
+                    <li class="flex items-start gap-2 leading-relaxed">
+                      <span class="text-amber-500 font-bold mt-0.5">•</span>
+                      <span>${note}</span>
+                    </li>
+                  `
+                  )
+                  .join("")}
+              </ul>
+            </div>
+          </article>
+        `
+        )
+        .join("");
+
+      const quizHTML = renderLessonQuizHTML(lesson);
+
+      // Prev / Next Lesson buttons
+      const prevLesson = MATH12_CHAPTER1_DATA.lessons.find((l) => l.lessonNumber === lesson.lessonNumber - 1);
+      const nextLesson = MATH12_CHAPTER1_DATA.lessons.find((l) => l.lessonNumber === lesson.lessonNumber + 1);
+
+      return `
+        <div class="space-y-6">
+          <!-- Lesson Header Card -->
+          <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-lg">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/25 border border-indigo-400/40 text-indigo-200">
+                Bài ${lesson.lessonNumber} • SGK Kết nối tri thức
+              </span>
+              <button
+                type="button"
+                onclick="switchTab('sandbox')"
+                class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition flex items-center gap-1.5"
+              >
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-300"></i>
+                <span>Mô phỏng đồ thị bài học</span>
+              </button>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight mb-2">
+              ${lesson.title}
+            </h3>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              ${lesson.summary}
+            </p>
+          </div>
+
+          <!-- Lesson Mindmap Accordion -->
+          <div class="p-5 sm:p-6 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-200/70 dark:border-slate-800">
+              <div class="flex items-center gap-2">
+                <i data-lucide="network" class="w-5 h-5 text-indigo-500"></i>
+                <h4 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  Sơ đồ Tư duy Bài ${lesson.lessonNumber}
+                </h4>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  onclick="expandOrCollapseAllMindmap('lesson-mindmap-box', true)"
+                  class="px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20"
+                >
+                  Mở hết
+                </button>
+                <button
+                  type="button"
+                  onclick="expandOrCollapseAllMindmap('lesson-mindmap-box', false)"
+                  class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                >
+                  Thu gọn
+                </button>
+              </div>
+            </div>
+            <div id="lesson-mindmap-box" class="overflow-x-auto">
+              ${lessonMindmapHTML}
+            </div>
+          </div>
+
+          <!-- Theory Sections -->
+          <div class="space-y-4">
+            <h4 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i data-lucide="book-open-check" class="w-5 h-5 text-indigo-500"></i>
+              <span>Kiến thức Trọng tâm & Công thức Chuẩn</span>
+            </h4>
+            ${sectionsHTML}
+          </div>
+
+          <!-- Mini-Quiz Section -->
+          <div id="lesson-quiz-section" class="p-5 sm:p-6 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            ${quizHTML}
+          </div>
+
+          <!-- Bottom Lesson Navigation -->
+          <div class="flex items-center justify-between gap-3 pt-2">
+            ${
+              prevLesson
+                ? `<button type="button" onclick="switchTab('${prevLesson.id}')" class="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 transition flex items-center gap-2">
+                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                     <span>Bài ${prevLesson.lessonNumber}: ${prevLesson.title}</span>
+                   </button>`
+                : `<div></div>`
+            }
+            ${
+              nextLesson
+                ? `<button type="button" onclick="switchTab('${nextLesson.id}')" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold transition flex items-center gap-2 shadow-md shadow-indigo-500/20">
+                     <span>Bài ${nextLesson.lessonNumber}: ${nextLesson.title}</span>
+                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                   </button>`
+                : `<button type="button" onclick="switchTab('sandbox')" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold transition flex items-center gap-2 shadow-md shadow-emerald-500/20">
+                     <span>Thực hành tại Phòng thí nghiệm Đồ thị</span>
+                     <i data-lucide="activity" class="w-4 h-4"></i>
+                   </button>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // MODULE 3: DYNAMIC MINI-QUIZ & EXAM PREP
+    // =========================================================================
+    function renderLessonQuizHTML(lesson) {
+      const stats = getLessonQuizStats(lesson.id);
+      const optionLetters = ["A", "B", "C", "D"];
+
+      const questionsHTML = lesson.practiceQuestions
+        .map((q, qIndex) => {
+          const answerKey = `${lesson.id}-q${qIndex}`;
+          const selectedIdx = APP_STATE.quizAnswers[answerKey];
+          const isAnswered = selectedIdx !== undefined;
+          const isCorrect = isAnswered && selectedIdx === q.correctIndex;
+
+          const optionsHTML = q.options
+            .map((optText, optIdx) => {
+              let btnStyle =
+                "bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-indigo-500 hover:bg-indigo-500/5";
+              let badgeStyle = "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200";
+              let statusIcon = "";
+
+              if (isAnswered) {
+                if (optIdx === q.correctIndex) {
+                  btnStyle =
+                    "bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/30 font-semibold";
+                  badgeStyle = "bg-emerald-600 text-white";
+                  statusIcon = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i>`;
+                } else if (optIdx === selectedIdx && selectedIdx !== q.correctIndex) {
+                  btnStyle =
+                    "bg-rose-500/15 dark:bg-rose-500/20 border-rose-500 text-rose-900 dark:text-rose-200 font-semibold";
+                  badgeStyle = "bg-rose-600 text-white";
+                  statusIcon = `<i data-lucide="x-circle" class="w-4 h-4 text-rose-500 shrink-0"></i>`;
+                } else {
+                  btnStyle = "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500 opacity-75";
+                }
+              }
+
+              return `
+                <button
+                  type="button"
+                  onclick="selectQuizOption('${lesson.id}', ${qIndex}, ${optIdx})"
+                  class="w-full text-left p-3.5 rounded-xl border transition-all duration-150 flex items-center justify-between gap-3 ${btnStyle}"
+                >
+                  <div class="flex items-center gap-3 min-w-0">
+                    <span class="w-7 h-7 rounded-lg font-mono text-xs font-bold flex items-center justify-center shrink-0 ${badgeStyle}">
+                      ${optionLetters[optIdx]}
+                    </span>
+                    <span class="text-xs sm:text-sm leading-relaxed">${optText}</span>
+                  </div>
+                  ${statusIcon}
+                </button>
+              `;
+            })
+            .join("");
+
+          const explanationBox = isAnswered
+            ? `
+              <div class="mt-3 p-4 rounded-xl border ${
+                isCorrect
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100"
+                  : "bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-100"
+              }">
+                <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider mb-1.5 ${
+                  isCorrect ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"
+                }">
+                  <i data-lucide="${isCorrect ? "party-popper" : "lightbulb"}" class="w-4 h-4"></i>
+                  <span>${
+                    isCorrect
+                      ? "Chính xác! Lời giải chi tiết:"
+                      : `Chưa chính xác — Đáp án đúng là ${optionLetters[q.correctIndex]}. Lời giải chi tiết:`
+                  }</span>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                  ${q.explanation}
+                </p>
+              </div>
+            `
+            : "";
+
+          return `
+            <div class="p-4 sm:p-5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/70 space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <span class="px-2.5 py-0.5 rounded-md text-xs font-mono font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                  Câu ${qIndex + 1} / ${lesson.practiceQuestions.length}
+                </span>
+                ${
+                  isAnswered
+                    ? `<span class="text-xs font-semibold ${
+                        isCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                      }">${isCorrect ? "✓ Đã trả lời đúng" : "✗ Đã chọn sai"}</span>`
+                    : `<span class="text-xs text-slate-400">Chưa làm</span>`
+                }
+              </div>
+              <div class="text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 leading-relaxed">
+                ${q.question}
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                ${optionsHTML}
+              </div>
+              ${explanationBox}
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">
+            <div>
+              <h4 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="check-square" class="w-5 h-5 text-emerald-500"></i>
+                <span>Luyện tập Trắc nghiệm Chuẩn THPT / HSA — Bài ${lesson.lessonNumber}</span>
+              </h4>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Chọn phương án A, B, C hoặc D để chấm điểm tức thì và xem lời giải chi tiết.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1 rounded-xl text-xs font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                Đúng ${stats.correct}/${stats.total} câu
+              </span>
+              <button
+                type="button"
+                onclick="resetLessonQuiz('${lesson.id}')"
+                class="px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              >
+                Làm lại bài này
+              </button>
+            </div>
+          </div>
+          <div class="space-y-4">
+            ${questionsHTML}
+          </div>
+        </div>
+      `;
+    }
+
+    function selectQuizOption(lessonId, qIndex, optIdx) {
+      const lesson = MATH12_CHAPTER1_DATA.lessons.find((l) => l.id === lessonId);
+      if (!lesson) return;
+      const question = lesson.practiceQuestions[qIndex];
+      if (!question) return;
+
+      const key = `${lessonId}-q${qIndex}`;
+      APP_STATE.quizAnswers[key] = optIdx;
+      safeSetStorage("math12_ch1_quiz_answers", APP_STATE.quizAnswers);
+
+      const isCorrect = optIdx === question.correctIndex;
+      playQuizSound(isCorrect);
+
+      renderSidebarNav();
+      const quizContainer = document.getElementById("lesson-quiz-section");
+      if (quizContainer) {
+        quizContainer.innerHTML = renderLessonQuizHTML(lesson);
+        refreshIcons();
+        renderFormulas(quizContainer);
+      }
+    }
+
+    function resetLessonQuiz(lessonId) {
+      const lesson = MATH12_CHAPTER1_DATA.lessons.find((l) => l.id === lessonId);
+      if (!lesson) return;
+      lesson.practiceQuestions.forEach((_, idx) => {
+        delete APP_STATE.quizAnswers[`${lessonId}-q${idx}`];
+      });
+      safeSetStorage("math12_ch1_quiz_answers", APP_STATE.quizAnswers);
+      renderSidebarNav();
+      const quizContainer = document.getElementById("lesson-quiz-section");
+      if (quizContainer) {
+        quizContainer.innerHTML = renderLessonQuizHTML(lesson);
+        refreshIcons();
+        renderFormulas(quizContainer);
+      }
+      showToast(`Đã đặt lại câu hỏi Bài ${lesson.lessonNumber}`);
+    }
+
+    // =========================================================================
+    // MODULE 2: GRAPHING SANDBOX (INTERACTIVE REAL-TIME GRAPHING LAB)
+    // =========================================================================
+    function renderGraphSandboxView() {
+      const isCubic = APP_STATE.sandbox.mode === "cubic";
+
+      return `
+        <div class="space-y-6">
+          <!-- Top Mode Switcher & Preset Buttons -->
+          <div class="p-5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <div class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                Interactive Function Plotter • SGK Kết nối tri thức
+              </div>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                Chọn Dạng Hàm số Khảo sát Thời gian thực
+              </h3>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onclick="setSandboxMode('cubic')"
+                class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
+                  isCubic
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                }"
+              >
+                <span>Dạng 1: Hàm bậc ba $y = ax^3 + bx^2 + cx + d$</span>
+              </button>
+              <button
+                type="button"
+                onclick="setSandboxMode('rational21')"
+                class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
+                  !isCubic
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                }"
+              >
+                <span>Dạng 2: Bậc 2 / Bậc 1 $y = \\frac{ax^2+bx+c}{px+q}$</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Grid: Left Sliders + Analysis | Right Interactive Canvas -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Left Column: Sliders & Mathematical Analysis (5 cols) -->
+            <div class="lg:col-span-5 space-y-5">
+              <!-- Sliders Panel -->
+              <div class="p-5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-indigo-500"></i>
+                    <span>Điều chỉnh Hệ số</span>
+                  </h4>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onclick="applySandboxPreset(1)"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20"
+                    >
+                      Mẫu SGK 1
+                    </button>
+                    <button
+                      type="button"
+                      onclick="applySandboxPreset(2)"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20"
+                    >
+                      Mẫu SGK 2
+                    </button>
+                  </div>
+                </div>
+
+                <div id="sandbox-sliders-container" class="space-y-3.5">
+                  ${renderSandboxSlidersHTML()}
+                </div>
+              </div>
+
+              <!-- Live Mathematical Analysis Panel -->
+              <div class="p-5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+                <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <i data-lucide="cpu" class="w-4 h-4 text-emerald-500"></i>
+                  <span>Phân tích Tự động (Cực trị • Tiệm cận • Tâm đối xứng)</span>
+                </h4>
+                <div id="sandbox-analysis-box" class="space-y-2.5 text-xs sm:text-sm">
+                  <!-- Populated dynamically via updateSandboxAnalysis() -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Interactive Graph Canvas (7 cols) -->
+            <div class="lg:col-span-7 p-4 sm:p-5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-3 text-xs">
+                  <span class="inline-flex items-center gap-1.5 font-semibold text-indigo-600 dark:text-indigo-400">
+                    <span class="w-3 h-0.5 bg-indigo-500 inline-block"></span> Đồ thị $y = f(x)$
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 font-semibold text-rose-500">
+                    <span class="w-3 h-0.5 border-b-2 border-dashed border-rose-500 inline-block"></span> Tiệm cận
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 font-semibold text-amber-500">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Cực trị
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 font-semibold text-emerald-500">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Tâm đối xứng $I$
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onclick="zoomSandbox(1.2)"
+                    class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-500/15"
+                    title="Phóng to"
+                    aria-label="Phóng to"
+                  >
+                    <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                  </button>
+                  <button
+                    type="button"
+                    onclick="zoomSandbox(0.83)"
+                    class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-500/15"
+                    title="Thu nhỏ"
+                    aria-label="Thu nhỏ"
+                  >
+                    <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                  </button>
+                  <button
+                    type="button"
+                    onclick="resetSandboxViewport()"
+                    class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-indigo-500/15"
+                  >
+                    Gốc $O(0;0)$
+                  </button>
+                </div>
+              </div>
+
+              <!-- Canvas Container -->
+              <div class="relative w-full h-[420px] sm:h-[480px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                <canvas id="sandbox-canvas" class="w-full h-full cursor-crosshair block"></canvas>
+                <div id="canvas-hover-readout" class="hidden absolute top-3 left-3 px-3 py-1.5 rounded-lg bg-slate-900/85 text-white font-mono text-[11px] pointer-events-none border border-slate-700 shadow-md">
+                </div>
+              </div>
+
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                <span>💡 Mẹo: Kéo chuột trên mặt phẳng tọa độ để di chuyển, lăn chuột để phóng to/thu nhỏ, rê chuột để xem tiếp tuyến tức thời.</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSandboxSlidersHTML() {
+      const s = APP_STATE.sandbox;
+      if (s.mode === "cubic") {
+        const sliders = [
+          { key: "a", label: "Hệ số $a$ ($x^3$)", min: -3, max: 3, step: 0.5, val: s.a },
+          { key: "b", label: "Hệ số $b$ ($x^2$)", min: -6, max: 6, step: 0.5, val: s.b },
+          { key: "c", label: "Hệ số $c$ ($x$)", min: -6, max: 6, step: 0.5, val: s.c },
+          { key: "d", label: "Hệ số tự do $d$", min: -6, max: 6, step: 0.5, val: s.d }
+        ];
+        return sliders
+          .map(
+            (sl) => `
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-medium text-slate-700 dark:text-slate-300">${sl.label}</span>
+                <span id="slider-val-${sl.key}" class="font-mono font-bold text-indigo-600 dark:text-indigo-400">${sl.val}</span>
+              </div>
+              <input
+                type="range"
+                min="${sl.min}"
+                max="${sl.max}"
+                step="${sl.step}"
+                value="${sl.val}"
+                oninput="updateSandboxParam('${sl.key}', this.value)"
+                class="w-full math-slider"
+              />
+            </div>
+          `
+          )
+          .join("");
+      } else {
+        const sliders = [
+          { key: "ra", label: "Tử số $a$ ($ax^2$)", min: -3, max: 3, step: 0.5, val: s.ra },
+          { key: "rb", label: "Tử số $b$ ($bx$)", min: -6, max: 6, step: 0.5, val: s.rb },
+          { key: "rc", label: "Tử số $c$ (hằng số)", min: -6, max: 6, step: 0.5, val: s.rc },
+          { key: "rp", label: "Mẫu số $p$ ($px$, $p \\neq 0$)", min: -3, max: 3, step: 0.5, val: s.rp },
+          { key: "rq", label: "Mẫu số $q$ (hằng số)", min: -5, max: 5, step: 0.5, val: s.rq }
+        ];
+        return sliders
+          .map(
+            (sl) => `
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-medium text-slate-700 dark:text-slate-300">${sl.label}</span>
+                <span id="slider-val-${sl.key}" class="font-mono font-bold text-indigo-600 dark:text-indigo-400">${sl.val}</span>
+              </div>
+              <input
+                type="range"
+                min="${sl.min}"
+                max="${sl.max}"
+                step="${sl.step}"
+                value="${sl.val}"
+                oninput="updateSandboxParam('${sl.key}', this.value)"
+                class="w-full math-slider"
+              />
+            </div>
+          `
+          )
+          .join("");
+      }
+    }
+
+    function setSandboxMode(mode) {
+      APP_STATE.sandbox.mode = mode;
+      APP_STATE.sandbox.offsetX = 0;
+      APP_STATE.sandbox.offsetY = 0;
+      renderActiveTab();
+    }
+
+    function applySandboxPreset(presetNum) {
+      const s = APP_STATE.sandbox;
+      if (s.mode === "cubic") {
+        if (presetNum === 1) {
+          // y = x^3 - 3x^2 + 2 (2 cực trị (0;2), (2;-2), điểm uốn I(1;0))
+          s.a = 1;
+          s.b = -3;
+          s.c = 0;
+          s.d = 2;
+        } else {
+          // y = -x^3 + 3x + 1 (2 cực trị (-1;-1), (1;3), điểm uốn I(0;1))
+          s.a = -1;
+          s.b = 0;
+          s.c = 3;
+          s.d = 1;
+        }
+      } else {
+        if (presetNum === 1) {
+          // y = (x^2 - 3x + 4) / (x - 1) = x - 2 + 2/(x - 1)
+          s.ra = 1;
+          s.rb = -3;
+          s.rc = 4;
+          s.rp = 1;
+          s.rq = -1;
+        } else {
+          // y = (x^2 + x - 1) / (x + 1) = x - 1/(x + 1) (luôn đồng biến, không có cực trị)
+          s.ra = 1;
+          s.rb = 1;
+          s.rc = -1;
+          s.rp = 1;
+          s.rq = 1;
+        }
+      }
+      renderActiveTab();
+    }
+
+    function updateSandboxParam(key, rawVal) {
+      let num = parseFloat(rawVal);
+      if (key === "rp" && Math.abs(num) < 0.01) {
+        num = 0.5; // Prevent division by zero in denominator px + q
+      }
+      APP_STATE.sandbox[key] = num;
+      const valSpan = document.getElementById(`slider-val-${key}`);
+      if (valSpan) valSpan.textContent = num;
+      updateSandboxAnalysis();
+      drawSandboxGraph();
+    }
+
+    function fmtNum(val) {
+      if (Math.abs(val) < 1e-7) return "0";
+      const rounded = Math.round(val * 100) / 100;
+      return String(rounded);
+    }
+
+    function updateSandboxAnalysis() {
+      const box = document.getElementById("sandbox-analysis-box");
+      if (!box) return;
+      const s = APP_STATE.sandbox;
+
+      if (s.mode === "cubic") {
+        const { a, b, c, d } = s;
+        const f = (x) => a * x * x * x + b * x * x + c * x + d;
+
+        if (Math.abs(a) < 1e-7) {
+          box.innerHTML = `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300">
+              Khi $a = 0$, hàm số suy biến thành hàm bậc hai hoặc bậc nhất $y = ${fmtNum(b)}x^2 + ${fmtNum(c)}x + ${fmtNum(d)}$. Hãy chọn $a \\neq 0$ để khảo sát hàm bậc ba.
+            </div>
+          `;
+          renderFormulas(box);
+          return;
+        }
+
+        // Inflection point (Symmetry center)
+        const xI = -b / (3 * a);
+        const yI = f(xI);
+
+        // Derivative y' = 3ax^2 + 2bx + c, delta' = b^2 - 3ac
+        const deltaPrime = b * b - 3 * a * c;
+        let extremaHTML = "";
+
+        if (deltaPrime > 1e-7) {
+          const sqrtD = Math.sqrt(deltaPrime);
+          const x1 = (-b - sqrtD) / (3 * a);
+          const x2 = (-b + sqrtD) / (3 * a);
+          // Second derivative y''(x) = 6ax + 2b
+          const isX1Max = 6 * a * x1 + 2 * b < 0;
+          const xCD = isX1Max ? x1 : x2;
+          const xCT = isX1Max ? x2 : x1;
+          extremaHTML = `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+              <div class="font-bold text-amber-700 dark:text-amber-300">2 Điểm Cực trị ($\\Delta'_{y'} = ${fmtNum(deltaPrime)} > 0$):</div>
+              <div>• Điểm cực đại: $M_{CĐ}\\left(${fmtNum(xCD)}; ${fmtNum(f(xCD))}\\right)$</div>
+              <div>• Điểm cực tiểu: $M_{CT}\\left(${fmtNum(xCT)}; ${fmtNum(f(xCT))}\\right)$</div>
+            </div>
+          `;
+        } else {
+          extremaHTML = `
+            <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+              <div class="font-bold">Không có cực trị ($\\Delta'_{y'} = ${fmtNum(deltaPrime)} \\le 0$):</div>
+              <div>Hàm số luôn ${a > 0 ? "đồng biến" : "nghịch biến"} trên toàn trục số $\\mathbb{R}$.</div>
+            </div>
+          `;
+        }
+
+        box.innerHTML = `
+          <div class="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 space-y-1">
+            <div class="font-bold text-indigo-700 dark:text-indigo-300">Hàm số & Đạo hàm:</div>
+            <div>$$y = ${fmtNum(a)}x^3 + (${fmtNum(b)})x^2 + (${fmtNum(c)})x + (${fmtNum(d)})$$</div>
+            <div>$$y' = ${fmtNum(3 * a)}x^2 + (${fmtNum(2 * b)})x + (${fmtNum(c)})$$</div>
+          </div>
+          ${extremaHTML}
+          <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+            <div class="font-bold text-emerald-700 dark:text-emerald-300">Tâm đối xứng (Điểm uốn $y''(x_0) = 0$):</div>
+            <div>$$I\\left(${fmtNum(xI)}; ${fmtNum(yI)}\\right) \\quad \\text{với } x_0 = -\\frac{b}{3a} = ${fmtNum(xI)}$$</div>
+          </div>
+        `;
+      } else {
+        const { ra: a, rb: b, rc: c, rp: p, rq: q } = s;
+        const xAsym = -q / p;
+        // Polynomial division: (ax^2 + bx + c) / (px + q) = (alpha * x + beta) + r / (px + q)
+        const alpha = a / p;
+        const beta = (b * p - a * q) / (p * p);
+        const remainder = c - beta * q;
+        const ySym = alpha * xAsym + beta;
+
+        // Derivative numerator: a*p*x^2 + 2*a*q*x + (b*q - c*p) = 0
+        // Or from y = alpha*x + beta + remainder/(px + q) => y' = alpha - remainder*p/(px+q)^2
+        let extremaHTML = "";
+        if (Math.abs(a) < 1e-7) {
+          extremaHTML = `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              Khi $a = 0$, hàm số trở thành bậc 1 / bậc 1, có tiệm cận ngang $y = ${fmtNum(b / p)}$ và không có cực trị.
+            </div>
+          `;
+        } else if (Math.abs(remainder) < 1e-7) {
+          extremaHTML = `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              Tử thức chia hết cho mẫu thức ($r = 0$), đồ thị suy biến thành đường thẳng bị khuyết điểm $x = ${fmtNum(xAsym)}$.
+            </div>
+          `;
+        } else if (alpha * remainder * p > 0) {
+          const dist = Math.sqrt((remainder * p) / alpha) / Math.abs(p);
+          const x1 = xAsym - dist;
+          const x2 = xAsym + dist;
+          const f = (x) => (a * x * x + b * x + c) / (p * x + q);
+          const y1 = f(x1);
+          const y2 = f(x2);
+          const isX1Max = alpha > 0;
+          const xCD = isX1Max ? x1 : x2;
+          const yCD = isX1Max ? y1 : y2;
+          const xCT = isX1Max ? x2 : x1;
+          const yCT = isX1Max ? y2 : y1;
+
+          extremaHTML = `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+              <div class="font-bold text-amber-700 dark:text-amber-300">2 Điểm Cực trị:</div>
+              <div>• Cực đại: $M_{CĐ}\\left(${fmtNum(xCD)}; ${fmtNum(yCD)}\\right)$</div>
+              <div>• Cực tiểu: $M_{CT}\\left(${fmtNum(xCT)}; ${fmtNum(yCT)}\\right)$</div>
+            </div>
+          `;
+        } else {
+          extremaHTML = `
+            <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+              <div class="font-bold">Không có cực trị:</div>
+              <div>Phương trình $y' = 0$ vô nghiệm, hàm số đơn điệu trên từng khoảng xác định.</div>
+            </div>
+          `;
+        }
+
+        box.innerHTML = `
+          <div class="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 space-y-1">
+            <div class="font-bold text-indigo-700 dark:text-indigo-300">Phân tích Đa thức:</div>
+            <div>$$y = \\frac{${fmtNum(a)}x^2 + (${fmtNum(b)})x + (${fmtNum(c)})}{${fmtNum(p)}x + (${fmtNum(q)})} = ${fmtNum(alpha)}x + (${fmtNum(beta)}) + \\frac{${fmtNum(remainder)}}{${fmtNum(p)}x + (${fmtNum(q)})}$$</div>
+          </div>
+          <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-1">
+            <div class="font-bold text-rose-700 dark:text-rose-300">Hệ thống Đường tiệm cận:</div>
+            <div>• Tiệm cận đứng (TCĐ): $$x = -\\frac{q}{p} = ${fmtNum(xAsym)}$$</div>
+            <div>• ${Math.abs(alpha) > 1e-7 ? "Tiệm cận xiên (TCX)" : "Tiệm cận ngang (TCN)"}: $$y = ${fmtNum(alpha)}x + (${fmtNum(beta)})$$</div>
+          </div>
+          ${extremaHTML}
+          <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+            <div class="font-bold text-emerald-700 dark:text-emerald-300">Tâm đối xứng (Giao điểm 2 Tiệm cận):</div>
+            <div>$$I\\left(${fmtNum(xAsym)}; ${fmtNum(ySym)}\\right)$$</div>
+          </div>
+        `;
+      }
+
+      renderFormulas(box);
+    }
+
+    function zoomSandbox(factor) {
+      APP_STATE.sandbox.scale = Math.min(120, Math.max(14, APP_STATE.sandbox.scale * factor));
+      drawSandboxGraph();
+    }
+
+    function resetSandboxViewport() {
+      APP_STATE.sandbox.scale = 38;
+      APP_STATE.sandbox.offsetX = 0;
+      APP_STATE.sandbox.offsetY = 0;
+      drawSandboxGraph();
+    }
+
+    function initGraphSandboxEvents() {
+      updateSandboxAnalysis();
+      const canvas = document.getElementById("sandbox-canvas");
+      if (!canvas) return;
+
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+
+      canvas.onmousedown = (e) => {
+        isDragging = true;
+        startX = e.clientX - APP_STATE.sandbox.offsetX;
+        startY = e.clientY - APP_STATE.sandbox.offsetY;
+      };
+
+      window.onmouseup = () => {
+        isDragging = false;
+      };
+
+      canvas.onmousemove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        if (isDragging) {
+          APP_STATE.sandbox.offsetX = e.clientX - startX;
+          APP_STATE.sandbox.offsetY = e.clientY - startY;
+        }
+
+        const originX = rect.width / 2 + APP_STATE.sandbox.offsetX;
+        const originY = rect.height / 2 + APP_STATE.sandbox.offsetY;
+        const mathX = (mouseX - originX) / APP_STATE.sandbox.scale;
+        APP_STATE.sandbox.hoverX = mathX;
+        drawSandboxGraph();
+      };
+
+      canvas.onmouseleave = () => {
+        APP_STATE.sandbox.hoverX = null;
+        const readout = document.getElementById("canvas-hover-readout");
+        if (readout) readout.classList.add("hidden");
+        drawSandboxGraph();
+      };
+
+      canvas.onwheel = (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.1 : 0.9;
+        zoomSandbox(factor);
+      };
+    }
+
+    function drawSandboxGraph() {
+      const canvas = document.getElementById("sandbox-canvas");
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = rect.height;
+      const s = APP_STATE.sandbox;
+      const scale = s.scale;
+      const originX = width / 2 + s.offsetX;
+      const originY = height / 2 + s.offsetY;
+
+      const toScreenX = (x) => originX + x * scale;
+      const toScreenY = (y) => originY - y * scale;
+      const toMathX = (px) => (px - originX) / scale;
+
+      const isDark = APP_STATE.darkMode;
+
+      // Clear background
+      ctx.fillStyle = isDark ? "#020617" : "#f8fafc";
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw coordinate grid
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = isDark ? "rgba(148, 163, 184, 0.12)" : "rgba(100, 116, 139, 0.14)";
+      const minX = Math.floor(toMathX(0));
+      const maxX = Math.ceil(toMathX(width));
+      const minY = Math.floor((originY - height) / scale);
+      const maxY = Math.ceil(originY / scale);
+
+      ctx.beginPath();
+      for (let gx = minX; gx <= maxX; gx++) {
+        const px = toScreenX(gx);
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, height);
+      }
+      for (let gy = minY; gy <= maxY; gy++) {
+        const py = toScreenY(gy);
+        ctx.moveTo(0, py);
+        ctx.lineTo(width, py);
+      }
+      ctx.stroke();
+
+      // Draw Axes Ox & Oy
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = isDark ? "rgba(226, 232, 240, 0.45)" : "rgba(51, 65, 85, 0.55)";
+      ctx.beginPath();
+      ctx.moveTo(0, originY);
+      ctx.lineTo(width, originY);
+      ctx.moveTo(originX, 0);
+      ctx.lineTo(originX, height);
+      ctx.stroke();
+
+      // Axis Numbers
+      ctx.fillStyle = isDark ? "rgba(148, 163, 184, 0.75)" : "rgba(71, 85, 105, 0.85)";
+      ctx.font = "10px 'JetBrains Mono', monospace";
+      for (let gx = minX; gx <= maxX; gx++) {
+        if (gx === 0) continue;
+        const px = toScreenX(gx);
+        ctx.fillText(String(gx), px - 4, originY + 13);
+      }
+      for (let gy = minY; gy <= maxY; gy++) {
+        if (gy === 0) continue;
+        const py = toScreenY(gy);
+        ctx.fillText(String(gy), originX + 6, py + 3);
+      }
+      ctx.fillText("O", originX - 12, originY + 13);
+
+      // Define function & features
+      let evalFn = null;
+      let derivFn = null;
+      let verticalAsym = null;
+      let obliqueAsym = null;
+      const specialPoints = []; // { x, y, label, color }
+
+      if (s.mode === "cubic") {
+        const { a, b, c, d } = s;
+        evalFn = (x) => a * x * x * x + b * x * x + c * x + d;
+        derivFn = (x) => 3 * a * x * x + 2 * b * x + c;
+
+        if (Math.abs(a) > 1e-7) {
+          const xI = -b / (3 * a);
+          const yI = evalFn(xI);
+          specialPoints.push({ x: xI, y: yI, label: `I(${fmtNum(xI)};${fmtNum(yI)})`, color: "#10b981" });
+
+          const deltaP = b * b - 3 * a * c;
+          if (deltaP > 1e-7) {
+            const x1 = (-b - Math.sqrt(deltaP)) / (3 * a);
+            const x2 = (-b + Math.sqrt(deltaP)) / (3 * a);
+            specialPoints.push({ x: x1, y: evalFn(x1), label: `CĐ/CT(${fmtNum(x1)};${fmtNum(evalFn(x1))})`, color: "#f59e0b" });
+            specialPoints.push({ x: x2, y: evalFn(x2), label: `CĐ/CT(${fmtNum(x2)};${fmtNum(evalFn(x2))})`, color: "#f59e0b" });
+          }
+        }
+      } else {
+        const { ra: a, rb: b, rc: c, rp: p, rq: q } = s;
+        evalFn = (x) => (a * x * x + b * x + c) / (p * x + q);
+        derivFn = (x) => {
+          const denom = p * x + q;
+          return (a * p * x * x + 2 * a * q * x + b * q - c * p) / (denom * denom);
+        };
+        verticalAsym = -q / p;
+        const alpha = a / p;
+        const beta = (b * p - a * q) / (p * p);
+        const remainder = c - beta * q;
+        obliqueAsym = { alpha, beta };
+
+        const ySym = alpha * verticalAsym + beta;
+        specialPoints.push({
+          x: verticalAsym,
+          y: ySym,
+          label: `I(${fmtNum(verticalAsym)};${fmtNum(ySym)})`,
+          color: "#10b981"
+        });
+
+        if (Math.abs(a) > 1e-7 && alpha * remainder * p > 0) {
+          const dist = Math.sqrt((remainder * p) / alpha) / Math.abs(p);
+          const x1 = verticalAsym - dist;
+          const x2 = verticalAsym + dist;
+          specialPoints.push({ x: x1, y: evalFn(x1), label: `CT1(${fmtNum(x1)};${fmtNum(evalFn(x1))})`, color: "#f59e0b" });
+          specialPoints.push({ x: x2, y: evalFn(x2), label: `CT2(${fmtNum(x2)};${fmtNum(evalFn(x2))})`, color: "#f59e0b" });
+        }
+      }
+
+      // Draw Asymptotes (Dashed Rose lines)
+      if (verticalAsym !== null || obliqueAsym !== null) {
+        ctx.save();
+        ctx.setLineDash([6, 6]);
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = "#f43f5e";
+
+        if (verticalAsym !== null) {
+          const vx = toScreenX(verticalAsym);
+          ctx.beginPath();
+          ctx.moveTo(vx, 0);
+          ctx.lineTo(vx, height);
+          ctx.stroke();
+        }
+
+        if (obliqueAsym !== null) {
+          const xStart = toMathX(0);
+          const xEnd = toMathX(width);
+          const yStart = obliqueAsym.alpha * xStart + obliqueAsym.beta;
+          const yEnd = obliqueAsym.alpha * xEnd + obliqueAsym.beta;
+          ctx.beginPath();
+          ctx.moveTo(toScreenX(xStart), toScreenY(yStart));
+          ctx.lineTo(toScreenX(xEnd), toScreenY(yEnd));
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Draw Main Curve y = f(x)
+      ctx.save();
+      ctx.lineWidth = 2.8;
+      ctx.strokeStyle = isDark ? "#818cf8" : "#4f46e5";
+      ctx.beginPath();
+      let penDown = false;
+
+      for (let px = 0; px <= width; px += 1.5) {
+        const mx = toMathX(px);
+        if (verticalAsym !== null && Math.abs(mx - verticalAsym) < 0.03) {
+          penDown = false;
+          continue;
+        }
+        const my = evalFn(mx);
+        if (!Number.isFinite(my)) {
+          penDown = false;
+          continue;
+        }
+        const py = toScreenY(my);
+        if (py < -height || py > height * 2) {
+          penDown = false;
+          continue;
+        }
+        if (!penDown) {
+          ctx.moveTo(px, py);
+          penDown = true;
+        } else {
+          ctx.lineTo(px, py);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw Special Points (Extrema & Symmetry Center I)
+      specialPoints.forEach((pt) => {
+        const px = toScreenX(pt.x);
+        const py = toScreenY(pt.y);
+        if (px < -20 || px > width + 20 || py < -20 || py > height + 20) return;
+
+        ctx.beginPath();
+        ctx.arc(px, py, 5.5, 0, Math.PI * 2);
+        ctx.fillStyle = pt.color;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+
+        ctx.font = "600 11px 'Inter', sans-serif";
+        ctx.fillStyle = isDark ? "#f8fafc" : "#0f172a";
+        ctx.fillText(pt.label, px + 8, py - 8);
+      });
+
+      // Draw Hover Point & Instantaneous Tangent Line
+      const readout = document.getElementById("canvas-hover-readout");
+      if (s.hoverX !== null && evalFn && derivFn) {
+        const hx = s.hoverX;
+        if (verticalAsym === null || Math.abs(hx - verticalAsym) > 0.05) {
+          const hy = evalFn(hx);
+          const slope = derivFn(hx);
+          if (Number.isFinite(hy) && Number.isFinite(slope)) {
+            const sx = toScreenX(hx);
+            const sy = toScreenY(hy);
+
+            // Tangent segment
+            ctx.save();
+            ctx.setLineDash([4, 3]);
+            ctx.lineWidth = 1.4;
+            ctx.strokeStyle = "#06b6d4";
+            const dx = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(toScreenX(hx - dx), toScreenY(hy - slope * dx));
+            ctx.lineTo(toScreenX(hx + dx), toScreenY(hy + slope * dx));
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(sx, sy, 4.5, 0, Math.PI * 2);
+            ctx.fillStyle = "#06b6d4";
+            ctx.fill();
+
+            if (readout) {
+              readout.classList.remove("hidden");
+              readout.textContent = `x = ${fmtNum(hx)} | y = ${fmtNum(hy)} | Hệ số góc tiếp tuyến f'(x) = ${fmtNum(slope)}`;
+            }
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // QUICK SEARCH / FILTER ACROSS ALL LESSONS
+    // =========================================================================
+    function handleQuickSearch(query) {
+      const clearBtn = document.getElementById("clear-search-btn");
+      const panel = document.getElementById("search-results-panel");
+      const trimmed = (query || "").trim().toLowerCase();
+
+      if (!trimmed) {
+        if (clearBtn) clearBtn.classList.add("hidden");
+        if (panel) {
+          panel.classList.add("hidden");
+          panel.innerHTML = "";
+        }
+        return;
+      }
+
+      if (clearBtn) clearBtn.classList.remove("hidden");
+      if (!panel) return;
+
+      const matches = [];
+      MATH12_CHAPTER1_DATA.lessons.forEach((lesson) => {
+        lesson.sections.forEach((sec) => {
+          const haystack = `${lesson.title} ${sec.heading} ${sec.content} ${sec.formulas.join(" ")} ${sec.keyNotes.join(" ")}`.toLowerCase();
+          if (haystack.includes(trimmed)) {
+            matches.push({
+              lessonId: lesson.id,
+              lessonNumber: lesson.lessonNumber,
+              lessonTitle: lesson.title,
+              heading: sec.heading,
+              snippet: sec.content,
+              formula: sec.formulas[0] || ""
+            });
+          }
+        });
+      });
+
+      panel.classList.remove("hidden");
+      if (matches.length === 0) {
+        panel.innerHTML = `
+          <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-500">
+            Không tìm thấy mục lý thuyết hoặc công thức nào khớp với từ khóa <strong>"${query}"</strong>.
+          </div>
+        `;
+        return;
+      }
+
+      panel.innerHTML = `
+        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-indigo-500/40 shadow-lg space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+              Kết quả tìm kiếm nhanh (${matches.length} mục khớp)
+            </span>
+            <button type="button" onclick="clearQuickSearch()" class="text-xs text-slate-400 hover:text-slate-600">
+              Đóng kết quả
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+            ${matches
+              .map(
+                (m) => `
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-2">
+                  <div>
+                    <div class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mb-0.5">
+                      Bài ${m.lessonNumber}: ${m.lessonTitle}
+                    </div>
+                    <div class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-1">
+                      ${m.heading}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                      ${m.snippet}
+                    </p>
+                    <div class="mt-2 text-xs overflow-x-auto">${m.formula}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onclick="switchTab('${m.lessonId}')"
+                    class="self-start px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition"
+                  >
+                    Mở Bài ${m.lessonNumber} →
+                  </button>
+                </div>
+              `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+      renderFormulas(panel);
+    }
+
+    function clearQuickSearch(focusInput = false) {
+      const input = document.getElementById("quick-search-input");
+      const clearBtn = document.getElementById("clear-search-btn");
+      const panel = document.getElementById("search-results-panel");
+      if (input) {
+        input.value = "";
+        if (focusInput) input.focus();
+      }
+      if (clearBtn) clearBtn.classList.add("hidden");
+      if (panel) {
+        panel.classList.add("hidden");
+        panel.innerHTML = "";
+      }
+    }
+
+    // =========================================================================
+    // INITIALIZE APPLICATION ON LOAD
+    // =========================================================================
+    window.addEventListener("DOMContentLoaded", () => {
+      initPersistedState();
+      renderSidebarNav();
+      renderActiveTab();
+    });
+
+    window.addEventListener("resize", () => {
+      if (APP_STATE.activeTab === "sandbox") {
+        drawSandboxGraph();
+      }
+    });
+  </script>
+</body>
+</html>
