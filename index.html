@@ -2327,7 +2327,7 @@
               Tử thức chia hết cho mẫu thức ($r = 0$), đồ thị suy biến thành đường thẳng bị khuyết điểm $x = ${fmtNum(xAsym)}$.
             </div>
           `;
-        } else if (alpha * remainder * p > 0) {
+        } else if (a * remainder > 0) {
           const dist = Math.sqrt((remainder * p) / alpha) / Math.abs(p);
           const x1 = xAsym - dist;
           const x2 = xAsym + dist;
@@ -2562,7 +2562,7 @@
         });
 
         if (Math.abs(a) > 1e-7 && alpha * remainder * p > 0) {
-          const dist = Math.sqrt((remainder * p) / alpha) / Math.abs(p);
+          const dist = Math.sqrt(remainder / alpha);
           const x1 = verticalAsym - dist;
           const x2 = verticalAsym + dist;
           specialPoints.push({ x: x1, y: evalFn(x1), label: `CT1(${fmtNum(x1)};${fmtNum(evalFn(x1))})`, color: "#f59e0b" });
